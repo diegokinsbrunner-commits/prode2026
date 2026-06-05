@@ -711,6 +711,142 @@ function runCounters() {
   }, 100);
 }
 
+
+/* ══ RECORDATORIO — partidos de mañana ══════════════════ */
+function getTomorrowMatches() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tStr = tomorrow.toDateString();
+  return MATCHES.filter(m => {
+    const ko = matchKickoff(m);
+    return ko.toDateString() === tStr && !isLocked(m);
+  });
+}
+
+function getTodayMatches() {
+  const today = new Date().toDateString();
+  return MATCHES.filter(m => {
+    const ko = matchKickoff(m);
+    return ko.toDateString() === today && !isLocked(m);
+  });
+}
+
+function showReminder(player) {
+  const matches = [...getTodayMatches(), ...getTomorrowMatches()];
+  if (!matches.length) return;
+
+  const isTomorrow = m => {
+    const t = new Date(); t.setDate(t.getDate()+1);
+    return matchKickoff(m).toDateString() === t.toDateString();
+  };
+
+  const cards = matches.map(m => {
+    const pred = STATE.predictions[`${player.id}_${m.id}`];
+    const h = pred?.h ?? ""; const a = pred?.a ?? "";
+    const hasPred = pred && pred.h != null;
+    const label = isTomorrow(m) ? "🌅 Mañana" : "⚡ Hoy";
+    const labelColor = isTomorrow(m) ? "#f1c40f" : "#e74c3c";
+    return `
+      <div class="rm-card">
+        <div class="rm-card-meta">
+          <span style="color:${labelColor};font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:1px">${label} · ${m.date} ${m.time}hs</span>
+          <span style="font-size:10px;color:#4a7a4a">${m.venue}</span>
+        </div>
+        <div class="rm-card-row">
+          <span class="rm-team">${m.home}</span>
+          <div class="sw">
+            <input class="si rm-inp" type="number" min="0" max="20"
+              id="rm_${m.id}_h" value="${h}" placeholder="–"/>
+            <span class="ss">-</span>
+            <input class="si rm-inp" type="number" min="0" max="20"
+              id="rm_${m.id}_a" value="${a}" placeholder="–"/>
+          </div>
+          <span class="rm-team" style="text-align:right">${m.away}</span>
+        </div>
+        ${hasPred ? `<div style="font-size:10px;color:#2ecc71;margin-top:4px">✓ Pronóstico cargado: ${pred.h}–${pred.a}</div>` : `<div style="font-size:10px;color:#4a7a4a;margin-top:4px">Sin pronóstico todavía</div>`}
+      </div>`;
+  }).join("");
+
+  const total   = matches.length;
+  const sinPred = matches.filter(m => !STATE.predictions[`${player.id}_${m.id}`] || STATE.predictions[`${player.id}_${m.id}`].h == null).length;
+
+  const el = document.createElement("div");
+  el.id = "rm-overlay";
+  el.innerHTML = `
+    <div class="rm-modal" id="rm-modal">
+      <div class="rm-header">
+        <div>
+          <div class="rm-title">⏰ Recordatorio de partidos</div>
+          <div class="rm-sub">
+            ${total} partido${total>1?"s":""} próximo${total>1?"s":""}
+            ${sinPred > 0 ? `· <span style="color:#e74c3c">${sinPred} sin pronosticar</span>` : `· <span style="color:#2ecc71">¡Todos pronosticados!</span>`}
+          </div>
+        </div>
+        <button class="rm-close" onclick="window.dismissReminder(false)">✕</button>
+      </div>
+      <div class="rm-body">${cards}</div>
+      <div class="rm-footer">
+        <button class="bg" onclick="window.dismissReminder(false)">Ver después</button>
+        <button class="ba" onclick="window.dismissReminder(true)">💾 Guardar pronósticos</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add("rm-visible"), 30);
+}
+
+window.dismissReminder = function(save) {
+  if (save) {
+    const matches = [...getTodayMatches(), ...getTomorrowMatches()];
+    let saved = 0;
+    matches.forEach(m => {
+      const hEl = document.getElementById(`rm_${m.id}_h`);
+      const aEl = document.getElementById(`rm_${m.id}_a`);
+      if (hEl && aEl && hEl.value !== "" && aEl.value !== "") {
+        setPred(STATE.player, m.id, hEl.value, aEl.value);
+        saved++;
+      }
+    });
+    if (saved) showToast(`✅ ${saved} pronóstico${saved>1?"s":""} guardados`);
+  }
+  const overlay = document.getElementById("rm-overlay");
+  if (overlay) {
+    overlay.classList.remove("rm-visible");
+    setTimeout(() => overlay.remove(), 320);
+  }
+};
+
+/* ── NOTIFICACIONES DEL BROWSER ─────────────────────── */
+async function requestNotifPermission(player) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    const perm = await Notification.requestPermission();
+    if (perm === "granted") {
+      showToast("🔔 Notificaciones activadas");
+    }
+  }
+  tryBrowserNotif(player);
+}
+
+function tryBrowserNotif(player) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  const key  = `prode26_bnotif_${player.id}`;
+  const today = new Date().toDateString();
+  if (localStorage.getItem(key) === today) return;
+
+  const matches = [...getTodayMatches(), ...getTomorrowMatches()];
+  if (!matches.length) return;
+
+  const names = matches.slice(0,2).map(m=>`${m.home} vs ${m.away}`).join(", ");
+  const extra = matches.length > 2 ? ` y ${matches.length-2} más` : "";
+  new Notification("⚽ Prode Mundial 2026", {
+    body: `${names}${extra} — ¡cargá tus pronósticos!`,
+    tag:  "prode-reminder",
+    icon: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/26bd.png"
+  });
+  localStorage.setItem(key, today);
+}
+
 setInterval(render, 60000);
 render();
 </script>
