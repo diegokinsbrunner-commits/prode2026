@@ -3,37 +3,607 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Prode Mundial 2026 ⚽</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<title>DKHR — Human Resources Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:#060609;color:#eef0ff;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+#root{min-height:100vh}
+@keyframes spin{from{opacity:.2;transform:scale(.6)}to{opacity:1;transform:scale(1.2)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes orb1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,-40px)}}
+@keyframes orb2{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,40px)}}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px}
+::placeholder{color:rgba(255,255,255,0.45)!important}
+::-webkit-input-placeholder{color:rgba(255,255,255,0.45)!important}
+input,textarea,select{font-family:'IBM Plex Sans',sans-serif;color:#eef0ff}
+textarea:focus,input:focus,select:focus{border-color:rgba(79,172,247,0.5)!important;outline:none!important;box-shadow:0 0 0 3px rgba(79,172,247,0.06)!important}
+.fade{animation:fadeIn .3s ease both}
+select option{background:#111320}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const e = React.createElement;
+const {useState,useRef,useEffect} = React;
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, update }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+// ── Tokens ────────────────────────────────────────────────────────
+const G="#5bc8ff",GL="#4facf7",TX="#eef0ff",MT="rgba(255,255,255,0.38)",DIM="rgba(255,255,255,0.5)";
+const AX={D:"#4facf7",E:"#5b8ab0",P:"#7c6fbc",N:"#4d8a6c",A:"#a06848"};
+const AXL={D:"#2e8fd6",E:"#7aadd4",P:"#9d94e0",N:"#6aad8e",A:"#c48a6a"};
+const GLASS={background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,backdropFilter:"blur(20px)"};
+const CARD={...GLASS,padding:"24px 28px",marginBottom:14};
+const INP={width:"100%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"13px 16px",color:TX,fontSize:13,resize:"vertical",outline:"none",boxSizing:"border-box",WebkitTextFillColor:TX};
+const PBTN={padding:"12px 26px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:G,color:"#030508",letterSpacing:"0.03em",boxShadow:"0 0 24px rgba(79,172,247,0.2)"};
+const GBTN={padding:"8px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.06)",color:"rgba(255,255,255,0.8)",cursor:"pointer",fontSize:11,fontFamily:"'IBM Plex Mono',monospace"};
+const LBL={fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.65)",letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'IBM Plex Mono',monospace",display:"block",marginBottom:10};
 
-/* ══════════════════════════════════════════════════════
-   🔥 FIREBASE — reemplazá con tu config
-══════════════════════════════════════════════════════ */
-const firebaseConfig = {
-  apiKey:            "AIzaSyDDpQiHfldfivCV5_t3v2P_zdLOLnmg9_g",
-  authDomain:        "prodemundial2026-848ca.firebaseapp.com",
-  databaseURL:       "https://prodemundial2026-848ca-default-rtdb.firebaseio.com",
-  projectId:         "prodemundial2026-848ca",
-  storageBucket:     "prodemundial2026-848ca.firebasestorage.app",
-  messagingSenderId: "904689839611",
-  appId:             "1:904689839611:web:8f2e17c46a6527466eaf5e"
+// ── Questions ─────────────────────────────────────────────────────
+const QS=[
+  {id:1,ax:"D",es:"Me siento cómodo/a tomando decisiones rápidas, incluso con información incompleta.",en:"I feel comfortable making quick decisions, even with incomplete information.",fr:"Je me sens à l'aise pour prendre des décisions rapides.",de:"Ich fühle mich wohl dabei, schnelle Entscheidungen zu treffen.",zh:"我能在信息不完整的情况下快速做出决策。"},
+  {id:2,ax:"D",es:"Cuando hay un obstáculo, mi primer impulso es enfrentarlo directamente.",en:"When there's an obstacle, my first impulse is to face it head-on.",fr:"Face à un obstacle, mon premier réflexe est de l'affronter.",de:"Bei Hindernissen ist mein erster Impuls, diese direkt anzugehen.",zh:"面对障碍时，我的第一反应是直接面对。"},
+  {id:3,ax:"D",es:"Prefiero liderar un proyecto antes que seguir las instrucciones de otro.",en:"I prefer to lead a project rather than follow someone else's instructions.",fr:"Je préfère diriger un projet plutôt que de suivre les instructions d'un autre.",de:"Ich leite lieber ein Projekt als Anweisungen zu befolgen.",zh:"我更喜欢领导项目而不是执行他人的指令。"},
+  {id:4,ax:"D",es:"Me incomoda esperar la aprobación de otros para actuar.",en:"I feel uncomfortable waiting for others' approval before acting.",fr:"Je me sens mal à l'aise d'attendre l'approbation des autres.",de:"Es ist mir unangenehm, auf die Zustimmung anderer zu warten.",zh:"等待他人批准才能行动让我感到不舒适。"},
+  {id:5,ax:"D",es:"Asumo riesgos calculados con naturalidad cuando creo en algo.",en:"I naturally take calculated risks when I believe in something.",fr:"Je prends naturellement des risques calculés quand je crois en quelque chose.",de:"Ich gehe natürlich kalkulierte Risiken ein, wenn ich an etwas glaube.",zh:"当我相信某件事时，我会自然地承担合理风险。"},
+  {id:6,ax:"E",es:"Disfruto conocer gente nueva en entornos profesionales.",en:"I enjoy meeting new people in professional settings.",fr:"J'aime rencontrer de nouvelles personnes dans des contextes professionnels.",de:"Ich genieße es, neue Menschen in beruflichen Umfeldern kennenzulernen.",zh:"我喜欢在职业环境中结识新朋友。"},
+  {id:7,ax:"E",es:"Me resulta fácil hablar en público o ante grupos grandes.",en:"I find it easy to speak in public or in front of large groups.",fr:"Je trouve facile de parler en public ou devant de grands groupes.",de:"Es fällt mir leicht, öffentlich zu sprechen.",zh:"我发现在公众场合或大型群体前发言很容易。"},
+  {id:8,ax:"E",es:"Genero entusiasmo en los equipos con los que trabajo.",en:"I generate enthusiasm in the teams I work with.",fr:"Je génère de l'enthousiasme dans les équipes avec lesquelles je travaille.",de:"Ich erzeuge Begeisterung in den Teams, mit denen ich arbeite.",zh:"我能在团队中激发热情。"},
+  {id:9,ax:"E",es:"Prefiero resolver problemas hablando con otros antes que pensar solo/a.",en:"I prefer solving problems by talking with others rather than thinking alone.",fr:"Je préfère résoudre les problèmes en discutant avec d'autres.",de:"Ich löse Probleme lieber im Gespräch mit anderen.",zh:"我更喜欢与他人交流来解决问题。"},
+  {id:10,ax:"E",es:"Las reuniones sociales me dan energía en lugar de agotarme.",en:"Social gatherings energize me rather than drain me.",fr:"Les réunions sociales m'énergisent plutôt qu'elles ne m'épuisent.",de:"Gesellschaftliche Treffen geben mir Energie.",zh:"社交聚会让我充满活力而不是感到疲惫。"},
+  {id:11,ax:"P",es:"Prefiero un entorno de trabajo estable y predecible.",en:"I prefer a stable and predictable work environment.",fr:"Je préfère un environnement de travail stable et prévisible.",de:"Ich bevorzuge ein stabiles und vorhersehbares Arbeitsumfeld.",zh:"我更喜欢稳定可预测的工作环境。"},
+  {id:12,ax:"P",es:"Soy constante en mis tareas y rara vez dejo proyectos a medias.",en:"I am consistent in my tasks and rarely leave projects unfinished.",fr:"Je suis constant(e) et laisse rarement des projets inachevés.",de:"Ich bin beständig und lasse selten Projekte unfertig.",zh:"我做事有始有终，很少半途而废。"},
+  {id:13,ax:"P",es:"Apoyo a mis compañeros con paciencia incluso cuando cometen errores.",en:"I support my colleagues patiently even when they make mistakes.",fr:"Je soutiens mes collègues avec patience même quand ils font des erreurs.",de:"Ich unterstütze Kollegen geduldig, auch wenn sie Fehler machen.",zh:"即使同事犯错，我也能耐心地支持他们。"},
+  {id:14,ax:"P",es:"Me tomo el tiempo necesario para pensar antes de responder o actuar.",en:"I take the necessary time to think before responding or acting.",fr:"Je prends le temps nécessaire pour réfléchir avant d'agir.",de:"Ich nehme mir Zeit zum Nachdenken, bevor ich handle.",zh:"我会在回应或行动前花必要的时间思考。"},
+  {id:15,ax:"P",es:"El bienestar del equipo es tan importante como alcanzar los resultados.",en:"Team wellbeing is as important as achieving results.",fr:"Le bien-être de l'équipe est aussi important que d'atteindre les résultats.",de:"Das Wohlbefinden des Teams ist genauso wichtig wie Ergebnisse.",zh:"团队福祉与实现目标同等重要。"},
+  {id:16,ax:"N",es:"Sigo los procedimientos establecidos incluso cuando creo que hay una forma más rápida.",en:"I follow established procedures even when I think there's a faster way.",fr:"Je suis les procédures même quand je pense qu'il y a une façon plus rapide.",de:"Ich befolge Verfahren, auch wenn ich einen schnelleren Weg sehe.",zh:"即使认为有更快的方式，我也会遵循既定程序。"},
+  {id:17,ax:"N",es:"Me incomoda entregar un trabajo que no cumple con los estándares de calidad.",en:"I feel uncomfortable delivering work that doesn't meet quality standards.",fr:"Je me sens mal à l'aise de remettre un travail ne respectant pas les normes.",de:"Es ist mir unangenehm, Arbeit zu liefern, die nicht den Qualitätsstandards entspricht.",zh:"交付不符合质量标准的工作让我感到不适。"},
+  {id:18,ax:"N",es:"Presto mucha atención a los detalles, incluso en tareas menores.",en:"I pay close attention to details, even in minor tasks.",fr:"Je fais très attention aux détails, même dans les tâches mineures.",de:"Ich achte sehr auf Details, auch bei kleineren Aufgaben.",zh:"即使在小任务中，我也非常关注细节。"},
+  {id:19,ax:"N",es:"Las reglas y normas me dan claridad y seguridad para trabajar mejor.",en:"Rules and norms give me clarity and security to work better.",fr:"Les règles me donnent de la clarté pour mieux travailler.",de:"Regeln geben mir Klarheit, um besser zu arbeiten.",zh:"规则和规范让我更清晰地工作。"},
+  {id:20,ax:"N",es:"Analizo en profundidad antes de tomar una decisión importante.",en:"I analyze in depth before making an important decision.",fr:"J'analyse en profondeur avant de prendre une décision importante.",de:"Ich analysiere gründlich, bevor ich eine wichtige Entscheidung treffe.",zh:"做重要决定前，我会深入分析。"},
+  {id:21,ax:"A",es:"Mantengo la calma en situaciones de alta presión o conflicto.",en:"I stay calm in high-pressure or conflict situations.",fr:"Je reste calme dans les situations de haute pression ou de conflit.",de:"Ich bleibe in Hochdrucksituationen oder Konflikten ruhig.",zh:"在高压或冲突情况下，我能保持冷静。"},
+  {id:22,ax:"A",es:"Puedo adaptar mi estilo de comunicación según la persona con quien hablo.",en:"I can adapt my communication style depending on who I'm talking to.",fr:"Je peux adapter mon style de communication selon mon interlocuteur.",de:"Ich kann meinen Kommunikationsstil je nach Gesprächspartner anpassen.",zh:"我能根据交流对象调整沟通方式。"},
+  {id:23,ax:"A",es:"Cuando algo no sale como esperaba, me recupero rápidamente.",en:"When something doesn't go as expected, I recover quickly.",fr:"Quand quelque chose ne se passe pas comme prévu, je me remets rapidement.",de:"Wenn etwas nicht wie erwartet läuft, erhole ich mich schnell.",zh:"当事情不如预期时，我能快速恢复。"},
+  {id:24,ax:"A",es:"Puedo trabajar eficientemente con personas de estilos muy distintos al mío.",en:"I can work efficiently with people of very different styles.",fr:"Je peux travailler efficacement avec des personnes de styles très différents.",de:"Ich kann effizient mit Menschen sehr unterschiedlicher Stile arbeiten.",zh:"我能与风格迥异的人高效合作。"},
+  {id:25,ax:"A",es:"Gestiono mis emociones para que no afecten negativamente mi trabajo.",en:"I manage my emotions so they don't negatively affect my work.",fr:"Je gère mes émotions pour qu'elles n'affectent pas négativement mon travail.",de:"Ich steuere meine Emotionen, damit sie meine Arbeit nicht negativ beeinflussen.",zh:"我能管理情绪，使其不对工作产生负面影响。"},
+];
+
+const SCALES={es:["Nada","Poco","Moderado","Bastante","Total"],en:["Not at all","A little","Moderate","Quite","Totally"],pt:["Nada","Pouco","Moderado","Bastante","Totalmente"],fr:["Pas du tout","Un peu","Modérément","Beaucoup","Totalement"],de:["Gar nicht","Wenig","Mäßig","Ziemlich","Völlig"],zh:["完全不","很少","有时","经常","完全是"]};
+const AXES={es:{D:"Dominancia",E:"Extroversión",P:"Paciencia",N:"Normatividad",A:"Autocontrol"},en:{D:"Dominance",E:"Extroversion",P:"Patience",N:"Normativity",A:"Self-control"},fr:{D:"Dominance",E:"Extraversion",P:"Patience",N:"Normativité",A:"Maîtrise"},de:{D:"Dominanz",E:"Extraversion",P:"Geduld",N:"Normativität",A:"Selbstkontrolle"},zh:{D:"支配力",E:"外向性",P:"耐心",N:"规范性",A:"自控力"}};
+const DOCTYPES={es:["Oferta laboral","Contrato de trabajo","Carta de desvinculación","Evaluación de desempeño","Política de RRHH"],en:["Job offer","Employment contract","Termination letter","Performance review","HR policy"],fr:["Offre d'emploi","Contrat de travail","Lettre de licenciement","Évaluation","Politique RH"],de:["Stellenangebot","Arbeitsvertrag","Kündigungsschreiben","Leistungsbeurteilung","HR-Richtlinie"],zh:["录用通知","劳动合同","离职信","绩效评估","人事政策"]};
+const TABS={es:["CVs","Documentos","Onboarding","DK Profile"],en:["CVs","Documents","Onboarding","DK Profile"],pt:["CVs","Documentos","Onboarding","DK Profile"],fr:["CVs","Documents","Onboarding","DK Profile"],de:["CVs","Dokumente","Onboarding","DK Profil"],zh:["简历","文件","入职","DK档案"]};
+const UI={
+  es:{
+    tagline:"Inteligencia en RRHH",heroSub:"INTELIGENCIA EN RECURSOS HUMANOS",
+    start:"COMENZAR AHORA",benefits:["Consultoría HR","IA de última generación"],
+    modules:"Módulos",moduleTitle:"Todo lo que necesita tu RRHH",tryBtn:"Probar la plataforma →",
+    m1t:"Análisis de CVs",m1d:"Scoring automático, fortalezas, brechas y perfil conductual con IA.",
+    m2t:"Documentos HR",m2d:"Contratos, ofertas y evaluaciones en segundos.",
+    m3d:"Asistente entrenado con tu manual y políticas internas.",
+    m4d:"25 preguntas DISC. Radar instantáneo con interpretación IA.",
+    jdLabel:"Descripción del puesto",jdPh:"Pegá la descripción del puesto...",
+    cvLabel:"CVs de candidatos",addCv:"+ Agregar CV",analyzBtn:"Analizar candidatos",analyzing:"Analizando...",
+    str:"Fortalezas",gaps:"Brechas",
+    docLabel:"Tipo de documento",detLabel:"Detalles del documento",detPh:"Nombre, puesto, salario, fecha de inicio...",
+    genBtn:"Generar documento",generating:"Generando...",copy:"Copiar",copied:"Copiado ✓",
+    ctxLabel:"Políticas y manual de la empresa",ctxPh:"Pegá el reglamento, políticas de RRHH, beneficios...",
+    activateBtn:"Activar asistente",active:"Activo",inactive:"Inactivo",
+    chatPh:"Consultá sobre las políticas...",sendBtn:"Enviar",
+    chatEmpty:"Activá el asistente para comenzar.",
+    welcome:"Hola. Soy el asistente de onboarding DKHR. ¿En qué puedo ayudarte?",
+    testTitle:"Evaluación DK Profile",testDesc:"Respondé con honestidad — no hay respuestas correctas. Toma 5–7 minutos.",
+    nameLabel:"Nombre completo",namePh:"Ingresá tu nombre...",startTest:"Comenzar evaluación",
+    qLabel:"Pregunta",of:"de",howMuch:"¿Cuánto te identificás con esta afirmación?",
+    prev:"Anterior",next:"Siguiente",generate:"Generar mi perfil",analysing:"Analizando...",
+    results:"Tu DK Profile",retake:"Volver a realizar",workStyle:"Estilo de trabajo",
+    disclaimer:"DK Profile genera una aproximación conductual mediante IA. No reemplaza evaluaciones psicométricas formales.",
+    statLabels:["Módulos","Idiomas","Análisis","Powered"],
+    demoNote:"MODO DEMO — Respuestas de muestra. Activá la API key para IA real."
+  },
+  en:{
+    tagline:"HR Intelligence",heroSub:"HUMAN RESOURCES INTELLIGENCE",
+    start:"GET STARTED",benefits:["HR Consulting","Next-gen AI"],
+    modules:"Modules",moduleTitle:"Everything your HR needs",tryBtn:"Try the platform →",
+    m1t:"CV Analyzer",m1d:"Automatic scoring, strengths, gaps and AI behavioral profile.",
+    m2t:"HR Documents",m2d:"Contracts, offers and reviews in seconds.",
+    m3d:"Assistant trained on your handbook and internal policies.",
+    m4d:"25 DISC questions. Instant radar with AI interpretation.",
+    jdLabel:"Job description",jdPh:"Paste the job description...",
+    cvLabel:"Candidate CVs",addCv:"+ Add CV",analyzBtn:"Analyze candidates",analyzing:"Analyzing...",
+    str:"Strengths",gaps:"Gaps",
+    docLabel:"Document type",detLabel:"Document details",detPh:"Name, position, salary, start date...",
+    genBtn:"Generate document",generating:"Generating...",copy:"Copy",copied:"Copied ✓",
+    ctxLabel:"Company policies & handbook",ctxPh:"Paste your HR policies, handbook, benefits...",
+    activateBtn:"Activate assistant",active:"Active",inactive:"Inactive",
+    chatPh:"Ask about the policies...",sendBtn:"Send",
+    chatEmpty:"Activate the assistant to start.",
+    welcome:"Hello. I am the DKHR onboarding assistant. How can I help you?",
+    testTitle:"DK Profile Assessment",testDesc:"Answer honestly — no right or wrong answers. Takes 5–7 minutes.",
+    nameLabel:"Full name",namePh:"Enter your name...",startTest:"Begin assessment",
+    qLabel:"Question",of:"of",howMuch:"How much do you identify with this statement?",
+    prev:"Previous",next:"Next",generate:"Generate my profile",analysing:"Analyzing...",
+    results:"Your DK Profile",retake:"Retake",workStyle:"Work style",
+    disclaimer:"DK Profile generates a behavioral approximation via AI. Does not replace formal psychometric assessments.",
+    statLabels:["Modules","Languages","Analyses","Powered"],
+    demoNote:"DEMO MODE — Sample responses. Add API key to activate real AI."
+  },
+  pt:{
+    tagline:"Inteligência em RH",heroSub:"INTELIGÊNCIA EM RECURSOS HUMANOS",
+    start:"COMEÇAR AGORA",benefits:["Consultoria RH","IA avançada"],
+    modules:"Módulos",moduleTitle:"Tudo que seu RH precisa",tryBtn:"Experimentar a plataforma →",
+    m1t:"Análise de CVs",m1d:"Pontuação automática, pontos fortes, lacunas e perfil comportamental com IA.",
+    m2t:"Documentos RH",m2d:"Contratos, ofertas e avaliações em segundos.",
+    m3d:"Assistente treinado com seu manual e políticas internas.",
+    m4d:"25 perguntas DISC. Radar instantâneo com interpretação de IA.",
+    jdLabel:"Descrição da vaga",jdPh:"Cole a descrição da vaga...",
+    cvLabel:"CVs dos candidatos",addCv:"+ Adicionar CV",analyzBtn:"Analisar candidatos",analyzing:"Analisando...",
+    str:"Pontos fortes",gaps:"Lacunas",
+    docLabel:"Tipo de documento",detLabel:"Detalhes do documento",detPh:"Nome, cargo, salário, data de início...",
+    genBtn:"Gerar documento",generating:"Gerando...",copy:"Copiar",copied:"Copiado ✓",
+    ctxLabel:"Políticas e manual da empresa",ctxPh:"Cole o manual, políticas de RH, benefícios...",
+    activateBtn:"Ativar assistente",active:"Ativo",inactive:"Inativo",
+    chatPh:"Pergunte sobre as políticas...",sendBtn:"Enviar",
+    chatEmpty:"Ative o assistente para começar.",
+    welcome:"Olá. Sou o assistente de onboarding DKHR. Como posso ajudá-lo?",
+    testTitle:"Avaliação DK Profile",testDesc:"Responda honestamente — não há respostas certas. Leva 5–7 minutos.",
+    nameLabel:"Nome completo",namePh:"Digite seu nome...",startTest:"Iniciar avaliação",
+    qLabel:"Pergunta",of:"de",howMuch:"Quanto você se identifica com esta afirmação?",
+    prev:"Anterior",next:"Próximo",generate:"Gerar meu perfil",analysing:"Analisando...",
+    results:"Seu DK Profile",retake:"Refazer",workStyle:"Estilo de trabalho",
+    disclaimer:"O DK Profile gera uma aproximação comportamental via IA. Não substitui avaliações psicométricas formais.",
+    statLabels:["Módulos","Idiomas","Análises","Powered"],
+    demoNote:"MODO DEMO — Respostas de amostra. Adicione a chave API para ativar IA real."
+  },
+  fr:{
+    tagline:"Intelligence RH",heroSub:"INTELLIGENCE EN RESSOURCES HUMAINES",
+    start:"COMMENCER",benefits:["Conseil RH","IA de pointe"],
+    modules:"Modules",moduleTitle:"Tout ce dont vos RH ont besoin",tryBtn:"Essayer la plateforme →",
+    m1t:"Analyse de CVs",m1d:"Scoring automatique, points forts, lacunes et profil comportemental IA.",
+    m2t:"Documents RH",m2d:"Contrats, offres et évaluations en quelques secondes.",
+    m3d:"Assistant formé sur votre manuel et politiques internes.",
+    m4d:"25 questions DISC. Radar instantané avec interprétation IA.",
+    jdLabel:"Description du poste",jdPh:"Collez la description du poste...",
+    cvLabel:"CVs des candidats",addCv:"+ Ajouter un CV",analyzBtn:"Analyser les candidats",analyzing:"Analyse en cours...",
+    str:"Points forts",gaps:"Lacunes",
+    docLabel:"Type de document",detLabel:"Détails du document",detPh:"Nom, poste, salaire, date de début...",
+    genBtn:"Générer le document",generating:"Génération...",copy:"Copier",copied:"Copié ✓",
+    ctxLabel:"Politiques et manuel de l'entreprise",ctxPh:"Collez le manuel, politiques RH, avantages...",
+    activateBtn:"Activer l'assistant",active:"Actif",inactive:"Inactif",
+    chatPh:"Posez une question sur les politiques...",sendBtn:"Envoyer",
+    chatEmpty:"Activez l'assistant pour commencer.",
+    welcome:"Bonjour. Je suis l'assistant d'onboarding DKHR. Comment puis-je vous aider?",
+    testTitle:"Évaluation DK Profile",testDesc:"Répondez honnêtement — pas de bonnes ou mauvaises réponses. Durée 5–7 min.",
+    nameLabel:"Nom complet",namePh:"Entrez votre nom...",startTest:"Commencer l'évaluation",
+    qLabel:"Question",of:"sur",howMuch:"Dans quelle mesure vous identifiez-vous à cette affirmation?",
+    prev:"Précédent",next:"Suivant",generate:"Générer mon profil",analysing:"Analyse...",
+    results:"Votre DK Profile",retake:"Recommencer",workStyle:"Style de travail",
+    disclaimer:"DK Profile génère une approximation comportementale via IA. Ne remplace pas les évaluations psychométriques formelles.",
+    statLabels:["Modules","Langues","Analyses","Powered"],
+    demoNote:"MODE DÉMO — Réponses exemples. Ajoutez la clé API pour activer l'IA réelle."
+  },
+  de:{
+    tagline:"HR-Intelligenz",heroSub:"PERSONALWESEN INTELLIGENZ",
+    start:"JETZT STARTEN",benefits:["HR-Beratung","KI der nächsten Gen."],
+    modules:"Module",moduleTitle:"Alles was Ihre HR braucht",tryBtn:"Plattform ausprobieren →",
+    m1t:"Lebenslauf-Analyse",m1d:"Automatisches Scoring, Stärken, Lücken und KI-Verhaltensprofil.",
+    m2t:"HR-Dokumente",m2d:"Verträge, Angebote und Beurteilungen in Sekunden.",
+    m3d:"Assistent, der auf Ihrem Handbuch und internen Richtlinien trainiert wurde.",
+    m4d:"25 DISC-Fragen. Sofortiges Radar mit KI-Interpretation.",
+    jdLabel:"Stellenbeschreibung",jdPh:"Stellenbeschreibung einfügen...",
+    cvLabel:"Kandidaten-Lebensläufe",addCv:"+ Lebenslauf hinzufügen",analyzBtn:"Kandidaten analysieren",analyzing:"Analyse läuft...",
+    str:"Stärken",gaps:"Lücken",
+    docLabel:"Dokumenttyp",detLabel:"Dokumentdetails",detPh:"Name, Position, Gehalt, Startdatum...",
+    genBtn:"Dokument generieren",generating:"Generiere...",copy:"Kopieren",copied:"Kopiert ✓",
+    ctxLabel:"Unternehmensrichtlinien und Handbuch",ctxPh:"Handbuch, HR-Richtlinien, Leistungen einfügen...",
+    activateBtn:"Assistenten aktivieren",active:"Aktiv",inactive:"Inaktiv",
+    chatPh:"Fragen zu Unternehmensrichtlinien...",sendBtn:"Senden",
+    chatEmpty:"Aktivieren Sie den Assistenten, um zu beginnen.",
+    welcome:"Hallo. Ich bin der DKHR Onboarding-Assistent. Wie kann ich Ihnen helfen?",
+    testTitle:"DK Profile Bewertung",testDesc:"Antworten Sie ehrlich — keine richtigen oder falschen Antworten. Dauer 5–7 Min.",
+    nameLabel:"Vollständiger Name",namePh:"Namen eingeben...",startTest:"Bewertung starten",
+    qLabel:"Frage",of:"von",howMuch:"Wie sehr identifizieren Sie sich mit dieser Aussage?",
+    prev:"Zurück",next:"Weiter",generate:"Mein Profil generieren",analysing:"Analysiere...",
+    results:"Ihr DK Profile",retake:"Wiederholen",workStyle:"Arbeitsstil",
+    disclaimer:"DK Profile erstellt eine Verhaltensannäherung via KI. Ersetzt keine formalen psychometrischen Tests.",
+    statLabels:["Module","Sprachen","Analysen","Powered"],
+    demoNote:"DEMO-MODUS — Beispielantworten. API-Schlüssel hinzufügen für echte KI."
+  },
+  zh:{
+    tagline:"人力资源智能",heroSub:"人力资源智能平台",
+    start:"立即开始",benefits:["HR咨询","新一代AI"],
+    modules:"模块",moduleTitle:"您的人力资源所需的一切",tryBtn:"试用平台 →",
+    m1t:"简历分析",m1d:"自动评分、优势、差距和AI行为画像。",
+    m2t:"HR文件",m2d:"几秒钟内生成合同、offer和评估报告。",
+    m3d:"基于公司手册和内部政策训练的助手。",
+    m4d:"25道DISC题目。即时雷达图与AI解读。",
+    jdLabel:"职位描述",jdPh:"粘贴职位描述...",
+    cvLabel:"候选人简历",addCv:"+ 添加简历",analyzBtn:"分析候选人",analyzing:"分析中...",
+    str:"优势",gaps:"差距",
+    docLabel:"文件类型",detLabel:"文件详情",detPh:"姓名、职位、薪资、入职日期...",
+    genBtn:"生成文件",generating:"生成中...",copy:"复制",copied:"已复制 ✓",
+    ctxLabel:"公司政策与手册",ctxPh:"粘贴员工手册、HR政策、福利说明...",
+    activateBtn:"激活助手",active:"已激活",inactive:"未激活",
+    chatPh:"询问公司政策...",sendBtn:"发送",
+    chatEmpty:"请先激活助手。",
+    welcome:"您好。我是DKHR入职助手。请问有什么可以帮助您？",
+    testTitle:"DK档案评估",testDesc:"请诚实作答——没有对错之分。约需5-7分钟。",
+    nameLabel:"姓名",namePh:"请输入您的姓名...",startTest:"开始评估",
+    qLabel:"问题",of:"/",howMuch:"您对以下陈述的认同程度？",
+    prev:"上一题",next:"下一题",generate:"生成我的档案",analysing:"分析中...",
+    results:"您的DK档案",retake:"重新测试",workStyle:"工作风格",
+    disclaimer:"DK档案通过AI生成行为近似分析，不替代正式心理测量评估。",
+    statLabels:["模块","语言","分析","AI驱动"],
+    demoNote:"演示模式 — 样本回复。添加API密钥以激活真实AI。"
+  }
 };
+function t(lang,key){return (UI[lang]||UI.en)[key]||UI.en[key]||"";}
 
-/* ══════════════════════════════════════════════════════
-   🔐 PIN ADMIN ← GUARDALO SEGURO
-══════════════════════════════════════════════════════ */
-const ADMIN_PIN = "Agus2026";
 
-/* ══════════════════════════════════════════════════════
-   ⚽ FIXTURE — 104 partidos · horarios hora argentina
-══════════════════════════════════════════════════════ */
-const MATCHES = [
+// ── Mock data ─────────────────────────────────────────────────────
+function mock(type,payload){
+  if(type==="cv"){
+    const names=["Ana García","Carlos Mendez","Laura Ríos","Diego Torres"];
+    const n=Math.min(payload||2,4);
+    return Array.from({length:n},(_,i)=>({rank:i+1,candidate:names[i],score:Math.round(92-i*10),
+      summary:i===0?"Perfil sólido con experiencia alineada al puesto. Demuestra liderazgo y orientación a resultados.":i===1?"Buena base técnica y actitud proactiva. Requiere desarrollo en gestión de equipos.":"Perfil en desarrollo. Requiere acompañamiento inicial.",
+      strengths:i===0?["Liderazgo","Resultados","Comunicación"]:i===1?["Proactividad","Aprendizaje rápido"]:["Detalle y precisión"],
+      gaps:i===0?["Experiencia internacional"]:i===1?["Gestión de equipos","Visión estratégica"]:["Autonomía","Decisiones"],
+      pda:{D:78-i*12,E:65-i*5,P:55+i*10,N:72-i*4,A:80-i*8},
+      pdaProfile:i===0?"Orientado a resultados con alta capacidad de influencia.":i===1?"Colaborativo con tendencia analítica.":"Normativo y paciente."}));
+  }
+  if(type==="doc"){
+    const d=new Date().toLocaleDateString("es-AR",{year:"numeric",month:"long",day:"numeric"});
+    return "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nDOCUMENTO HR  [DEMO MODE]\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nBuenos Aires, "+d+"\n\nEstimado/a [Nombre]:\n\nNos complace comunicarle los términos\npara su incorporación a la organización.\n\nPOSICIÓN    : [Cargo]\nÁREA        : [Departamento]\nFECHA INICIO: [DD/MM/AAAA]\nSALARIO     : $ [Monto] bruto/mes\nMODALIDAD   : [Presencial/Híbrida/Remota]\n\nSujeto a la normativa laboral vigente.\n\nCordialmente,\nRecursos Humanos — DKHR\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚠ Demo. Activá la API para\n  documentos personalizados con IA.";
+  }
+  if(type==="chat"){
+    const r=["Según las políticas, podés encontrar esa info en el manual de bienvenida.","De acuerdo al reglamento, ese tipo de solicitudes requieren 5 días hábiles de anticipación.","Lo indicado es coordinar con tu líder y luego notificar a RRHH.","Ese beneficio aplica desde el tercer mes de antigüedad."];
+    return r[Math.floor(Math.random()*r.length)];
+  }
+  if(type==="profile"){
+    const s=payload||{};
+    let pt="Analista Estratégico";
+    if((s.D||0)>70&&(s.E||0)>65)pt="Líder Influyente";
+    else if((s.D||0)>70)pt="Ejecutor Directo";
+    else if((s.E||0)>70)pt="Conector Social";
+    else if((s.N||0)>75)pt="Especialista Metódico";
+    return{profileType:pt,summary:"Combina orientación a resultados con capacidad de influencia. Toma decisiones con seguridad y mantiene el foco en los objetivos sin perder de vista el equipo.",strengths:["Pensamiento estratégico","Resiliencia","Capacidad de influencia"],challenges:["Puede subestimar detalles","Tendencia a avanzar antes de consensuar"],workStyle:"Rinde mejor en entornos con autonomía y métricas claras."};
+  }
+}
+
+// ── Radar SVG ─────────────────────────────────────────────────────
+function RadarSVG({data,axes}){
+  const size=200,cx=100,cy=100,r=72;
+  const keys=Object.keys(axes),n=keys.length;
+  const ang=i=>(i*2*Math.PI/n)-Math.PI/2;
+  const pt=(i,v)=>{const a=ang(i),d=(v/100)*r;return[cx+d*Math.cos(a),cy+d*Math.sin(a)];};
+  const gpts=s=>keys.map((_,i)=>pt(i,s)).map(p=>p.join(",")).join(" ");
+  const dpts=keys.map((k,i)=>pt(i,data[k]||0)).map(p=>p.join(",")).join(" ");
+  return e("svg",{width:size,height:size,viewBox:"0 0 200 200",style:{filter:"drop-shadow(0 0 10px rgba(79,172,247,0.15))"}},
+    e("defs",null,
+      e("linearGradient",{id:"rg",x1:"0%",y1:"0%",x2:"100%",y2:"100%"},
+        e("stop",{offset:"0%",stopColor:"#4facf7",stopOpacity:"0.7"}),
+        e("stop",{offset:"100%",stopColor:"#7c6fbc",stopOpacity:"0.7"}))),
+    [25,50,75,100].map(s=>e("polygon",{key:s,points:gpts(s),fill:"none",stroke:"rgba(255,255,255,0.05)",strokeWidth:"1"})),
+    keys.map((_,i)=>{const[x,y]=pt(i,100);return e("line",{key:i,x1:cx,y1:cy,x2:x,y2:y,stroke:"rgba(255,255,255,0.06)",strokeWidth:"1"});}),
+    e("polygon",{points:dpts,fill:"url(#rg)",fillOpacity:"0.18",stroke:"url(#rg)",strokeWidth:"2"}),
+    keys.map((k,i)=>{const[x,y]=pt(i,data[k]||0);return e("circle",{key:i,cx:x,cy:y,r:"3.5",fill:"#4facf7",style:{filter:"drop-shadow(0 0 4px #4facf7)"}});}),
+    keys.map((k,i)=>{const[x,y]=pt(i,120);return e("text",{key:i,x,y,textAnchor:"middle",dominantBaseline:"middle",fill:"rgba(255,255,255,0.7)",fontSize:"8.5",fontFamily:"IBM Plex Mono,monospace"},axes[k]);})
+  );
+}
+
+// ── Bars ──────────────────────────────────────────────────────────
+function Bars({pda,axes}){
+  return e("div",{style:{display:"flex",flexDirection:"column",gap:12}},
+    Object.keys(AX).map(k=>e("div",{key:k},
+      e("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:6}},
+        e("span",{style:{fontSize:10,color:"rgba(255,255,255,0.7)",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.06em"}},axes[k]),
+        e("span",{style:{fontSize:13,fontWeight:700,color:AX[k],fontFamily:"'IBM Plex Mono',monospace",textShadow:"0 0 8px "+AX[k]+"60"}},pda[k]||0)),
+      e("div",{style:{height:4,background:"rgba(255,255,255,0.05)",borderRadius:4,overflow:"hidden"}},
+        e("div",{style:{height:"100%",width:(pda[k]||0)+"%",background:"linear-gradient(90deg,"+AX[k]+","+AXL[k]+")",borderRadius:4,transition:"width 1s ease",boxShadow:"0 0 8px "+AX[k]+"50"}}))
+    ))
+  );
+}
+
+// ── Spinner ───────────────────────────────────────────────────────
+function Spinner(){
+  return e("div",{style:{display:"flex",gap:6,justifyContent:"center",padding:"10px 0"}},
+    [0,1,2].map(i=>e("span",{key:i,style:{width:6,height:6,borderRadius:"50%",background:G,display:"inline-block",animation:"spin .9s ease "+(i*.18)+"s infinite alternate",boxShadow:"0 0 8px "+G}})));
+}
+
+// ── Lang selector ─────────────────────────────────────────────────
+function LangPill({lang,setLang}){
+  return e("div",{style:{display:"flex",gap:1,background:"rgba(255,255,255,0.05)",padding:"3px",borderRadius:10,border:"1px solid rgba(255,255,255,0.1)"}},
+    ["es","en","pt","fr","de","zh"].map(l=>e("button",{key:l,onClick:()=>setLang(l),style:{padding:"5px 7px",border:"none",borderRadius:7,background:lang===l?"rgba(79,172,247,0.18)":"transparent",color:lang===l?"#4facf7":"rgba(255,255,255,0.65)",cursor:"pointer",fontSize:10,fontWeight:lang===l?700:500,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0",transition:"all .2s",boxShadow:lang===l?"inset 0 0 0 1px rgba(79,172,247,0.4)":"none"}},l.toUpperCase()))
+  );
+}
+
+// ── DK Test ───────────────────────────────────────────────────────
+function DKTest({lang}){
+  const [step,setStep]=useState("intro");
+  const [name,setName]=useState("");
+  const [cur,setCur]=useState(0);
+  const [ans,setAns]=useState({});
+  const [result,setResult]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const q=QS[cur];
+  const scale=(SCALES[lang]||SCALES.es);
+  const axes=(AXES[lang]||AXES.es);
+  const TT=key=>t(lang,key);
+
+  const computeScores=()=>{
+    const ax={D:[],E:[],P:[],N:[],A:[]};
+    QS.forEach(q=>{if(ans[q.id])ax[q.ax].push(ans[q.id]);});
+    const s={};Object.keys(ax).forEach(k=>{const v=ax[k];s[k]=v.length?Math.round((v.reduce((a,b)=>a+b,0)/(v.length*5))*100):0;});
+    return s;
+  };
+
+  const analyze=()=>{const scores=computeScores();setLoading(true);setTimeout(()=>{setResult({scores,interp:mock("profile",scores)});setStep("result");setLoading(false);},1800);};
+  const pick=v=>{setAns({...ans,[q.id]:v});if(cur<QS.length-1)setTimeout(()=>setCur(c=>c+1),260);};
+
+  if(step==="intro")return e("div",{style:{maxWidth:540,margin:"0 auto"}},
+    e("div",{style:{...CARD}},
+      e("div",{style:{fontSize:24,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:TX,marginBottom:8}},TT("testTitle")),
+      e("div",{style:{fontSize:13,color:MT,lineHeight:1.8,marginBottom:22}},TT("testDesc")),
+      e("label",{style:LBL},TT("nameLabel")),
+      e("input",{style:{...INP,resize:"none"},placeholder:TT("namePh"),value:name,onChange:ev=>setName(ev.target.value),onKeyDown:ev=>ev.key==="Enter"&&name.trim()&&setStep("test")}),
+      e("div",{style:{marginTop:18}},
+        e("button",{style:{...PBTN,opacity:name.trim()?1:.4},onClick:()=>name.trim()&&setStep("test")},TT("startTest")))),
+    e("div",{style:{padding:"12px 16px",borderRadius:10,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:11,color:"rgba(255,255,255,0.6)",lineHeight:1.7,marginTop:10,fontStyle:"italic"}},"⚠ "+(TT("disclaimer")))
+  );
+
+  if(step==="test")return e("div",{style:{maxWidth:580,margin:"0 auto"}},
+    e("div",{style:{marginBottom:22}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:7}},
+        e("span",{style:{fontSize:11,color:MT,fontFamily:"'IBM Plex Mono',monospace"}},TT("qLabel")+" "+(cur+1)+" "+TT("of")+" "+QS.length),
+        e("span",{style:{fontSize:11,color:G,fontFamily:"'IBM Plex Mono',monospace",fontWeight:700}},Math.round((cur/QS.length)*100)+"%")),
+      e("div",{style:{height:3,background:"rgba(255,255,255,0.06)",borderRadius:3}},
+        e("div",{style:{height:"100%",width:((cur+1)/QS.length*100)+"%",background:"linear-gradient(90deg,"+G+",#7c6fbc)",borderRadius:3,transition:"width .3s ease"}}))),
+    e("div",{style:{marginBottom:12}},
+      e("span",{style:{fontSize:9,fontWeight:700,color:AX[q.ax],fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.12em",textTransform:"uppercase",padding:"4px 12px",borderRadius:20,background:AX[q.ax]+"15",border:"1px solid "+AX[q.ax]+"35"}},axes[q.ax])),
+    e("div",{style:{...CARD,minHeight:110,display:"flex",alignItems:"center",borderColor:ans[q.id]?"rgba(79,172,247,0.3)":"rgba(255,255,255,0.08)"}},
+      e("div",{style:{fontSize:16,lineHeight:1.8,color:TX}},q[lang]||q.en||q.es)),
+    e("div",{style:{marginBottom:22}},
+      e("div",{style:{fontSize:10,color:"rgba(255,255,255,0.6)",fontFamily:"'IBM Plex Mono',monospace",textAlign:"center",marginBottom:14,letterSpacing:"0.1em",textTransform:"uppercase"}},TT("howMuch")),
+      e("div",{style:{display:"flex",gap:8}},
+        [1,2,3,4,5].map(v=>{const active=ans[q.id]===v;return e("button",{key:v,onClick:()=>pick(v),style:{display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"14px 6px",borderRadius:12,border:"1px solid "+(active?"rgba(79,172,247,0.5)":"rgba(255,255,255,0.08)"),background:active?"rgba(79,172,247,0.12)":"rgba(255,255,255,0.03)",cursor:"pointer",flex:1,transition:"all .15s"}},
+          e("span",{style:{fontSize:22,fontWeight:700,color:active?G:MT,fontFamily:"'IBM Plex Mono',monospace",lineHeight:1}},v),
+          e("span",{style:{fontSize:8,color:active?G:"rgba(255,255,255,0.6)",textAlign:"center",fontFamily:"'IBM Plex Mono',monospace",textTransform:"uppercase",lineHeight:1.3}},scale[v-1]));}))
+    ),
+    e("div",{style:{display:"flex",justifyContent:"space-between"}},
+      e("button",{style:{...GBTN,opacity:cur===0?.3:1},onClick:()=>cur>0&&setCur(c=>c-1),disabled:cur===0},TT("prev")),
+      cur<QS.length-1
+        ?e("button",{style:{...PBTN,opacity:ans[q.id]?1:.4},onClick:()=>ans[q.id]&&setCur(c=>c+1)},TT("next"))
+        :e("button",{style:{...PBTN,opacity:Object.keys(ans).length===QS.length?1:.4},onClick:()=>Object.keys(ans).length===QS.length&&analyze()},TT("generate")))
+  );
+
+  if(loading)return e("div",{style:{textAlign:"center",padding:"60px 0"}},Spinner(),e("div",{style:{fontSize:12,color:MT,fontFamily:"'IBM Plex Mono',monospace",marginTop:14,letterSpacing:"0.08em"}},TT("analysing")));
+
+  if(step==="result"&&result){
+    const {scores,interp}=result;
+    return e("div",{className:"fade"},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:22}},
+        e("div",null,
+          e("div",{style:{fontSize:10,color:MT,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:5}},TT("results")),
+          e("div",{style:{fontSize:26,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:TX}},name),
+          e("div",{style:{fontSize:12,color:G,fontFamily:"'IBM Plex Mono',monospace",marginTop:4}},interp.profileType)),
+        e("button",{style:GBTN,onClick:()=>{setStep("intro");setAns({});setCur(0);setResult(null);setName("");}},TT("retake"))),
+      e("div",{style:{...CARD}},
+        e("div",{style:{display:"grid",gridTemplateColumns:"200px 1fr",gap:20,alignItems:"center"}},
+          e(RadarSVG,{data:scores,axes}),
+          e(Bars,{pda:scores,axes}))),
+      e("div",{style:{...CARD}},
+        e("div",{style:{fontSize:14,color:TX,lineHeight:1.85,marginBottom:12}},interp.summary),
+        e("div",{style:{fontSize:13,color:MT,lineHeight:1.75,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)"}},interp.workStyle)),
+      e("div",{style:{...CARD}},
+        e("div",{style:{marginBottom:10}},
+          e("span",{style:{fontSize:9,fontWeight:700,color:"#6aad8e",marginRight:8,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:"'IBM Plex Mono',monospace"}},TT("str")),
+          interp.strengths.map((x,i)=>e("span",{key:i,style:{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:11,margin:"2px",background:"rgba(61,122,92,0.15)",color:"#6aad8e",border:"1px solid rgba(61,122,92,0.3)"}},x))),
+        e("div",null,
+          e("span",{style:{fontSize:9,fontWeight:700,color:"#ad6a6a",marginRight:8,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:"'IBM Plex Mono',monospace"}},TT("gaps")),
+          interp.challenges.map((x,i)=>e("span",{key:i,style:{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:11,margin:"2px",background:"rgba(122,61,61,0.15)",color:"#ad6a6a",border:"1px solid rgba(122,61,61,0.3)"}},x))))
+    );
+  }
+  return null;
+}
+
+// ── App ───────────────────────────────────────────────────────────
+function App(){
+  const [lang,setLang]=useState("es");
+  const [tab,setTab]=useState(0);
+  const [page,setPage]=useState("landing");
+  const [jd,setJd]=useState("");
+  const [cvs,setCvs]=useState(["",""]);
+  const [cvRes,setCvRes]=useState(null);
+  const [cvLoad,setCvLoad]=useState(false);
+  const [docType,setDocType]=useState(0);
+  const [docDet,setDocDet]=useState("");
+  const [docRes,setDocRes]=useState(null);
+  const [docLoad,setDocLoad]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const [ctx,setCtx]=useState("");
+  const [botOn,setBotOn]=useState(false);
+  const [msgs,setMsgs]=useState([]);
+  const [chatIn,setChatIn]=useState("");
+  const [botLoad,setBotLoad]=useState(false);
+  const chatRef=useRef(null);
+  useEffect(()=>{chatRef.current&&chatRef.current.scrollIntoView({behavior:"smooth"});},[msgs]);
+
+  const axes=AXES[lang]||AXES.es;
+  const tabs=TABS[lang]||TABS.es;
+  const doctypes=DOCTYPES[lang]||DOCTYPES.es;
+  const isEs=lang==="es";
+  const T=key=>t(lang,key);
+
+  const doAnalyze=()=>{const f=cvs.filter(c=>c.trim());if(!jd.trim()||!f.length)return;setCvLoad(true);setCvRes(null);setTimeout(()=>{setCvRes(mock("cv",f.length));setCvLoad(false);},1800);};
+  const doDoc=()=>{if(!docDet.trim())return;setDocLoad(true);setDocRes(null);setTimeout(()=>{setDocRes(mock("doc"));setDocLoad(false);},1400);};
+  const activateBot=()=>{if(!ctx.trim())return;setBotOn(true);setMsgs([{r:"a",c:T("welcome")}]);};
+  const sendMsg=()=>{if(!chatIn.trim()||!botOn)return;const nm=[...msgs,{r:"u",c:chatIn}];setMsgs(nm);setChatIn("");setBotLoad(true);setTimeout(()=>{setMsgs([...nm,{r:"a",c:mock("chat")}]);setBotLoad(false);},1100);};
+
+  const tabBtn=a=>({flex:1,minWidth:80,padding:"10px 8px",textAlign:"center",border:"none",borderRadius:10,background:a?"rgba(79,172,247,0.1)":"transparent",boxShadow:a?"inset 0 0 0 1px rgba(79,172,247,0.3), 0 0 12px rgba(79,172,247,0.06)":"none",color:a?G:MT,cursor:"pointer",fontSize:11,fontWeight:a?700:400,whiteSpace:"nowrap",letterSpacing:"0.03em",transition:"all .2s"});
+
+  // ── Landing ────────────────────────────────────────────────────
+  if(page==="landing")return e("div",{style:{minHeight:"100vh",background:"#060609",overflow:"hidden",position:"relative"}},
+    // Orbs
+    e("div",{style:{position:"fixed",inset:0,zIndex:0,pointerEvents:"none"}},
+      e("div",{style:{position:"absolute",width:700,height:700,borderRadius:"50%",background:"radial-gradient(circle,rgba(79,172,247,0.07) 0%,transparent 65%)",top:"-15%",left:"-10%",animation:"orb1 20s ease-in-out infinite"}}),
+      e("div",{style:{position:"absolute",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(124,111,188,0.08) 0%,transparent 65%)",bottom:"-10%",right:"-5%",animation:"orb2 25s ease-in-out infinite"}}),
+      e("div",{style:{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.016) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.016) 1px,transparent 1px)",backgroundSize:"60px 60px"}}),
+      e("div",{style:{position:"absolute",inset:0,background:"radial-gradient(ellipse 80% 80% at 50% 50%,transparent 40%,#060609 100%)"}})),
+    // Header
+    e("header",{style:{position:"fixed",top:0,left:0,right:0,zIndex:100,height:60,padding:"0 28px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,0.05)",background:"rgba(6,6,9,0.7)",backdropFilter:"blur(20px)"}},
+      e("div",{style:{display:"flex",alignItems:"center",gap:10}},
+        e("span",{style:{fontSize:18,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:"#5bc8ff",letterSpacing:"0.2em"}},"DKHR"),
+        ),
+      e("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+        e(LangPill,{lang,setLang}),
+        )),
+    // Hero
+    e("section",{style:{position:"relative",zIndex:1,minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"100px 24px 60px"}},
+      e("div",{style:{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 14px",borderRadius:20,border:"1px solid rgba(79,172,247,0.2)",background:"rgba(79,172,247,0.06)",marginBottom:44}},
+        e("span",{style:{width:5,height:5,borderRadius:"50%",background:G,display:"inline-block",boxShadow:"0 0 6px "+G}}),
+        e("span",{style:{fontSize:10,color:G,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.14em",textTransform:"uppercase"}},"AI-Powered HR Platform · Demo Mode")),
+      e("h1",{style:{fontFamily:"'Cormorant Garamond',serif",lineHeight:.85,marginBottom:32}},
+        e("div",{style:{fontSize:"clamp(88px,15vw,172px)",fontWeight:700,color:"#5bc8ff",letterSpacing:"-0.02em",textShadow:"0 0 40px rgba(91,200,255,0.5)"}},"DK"),
+        e("div",{style:{fontSize:"clamp(88px,15vw,172px)",fontWeight:300,color:"rgba(238,240,255,0.9)",letterSpacing:"-0.02em",marginTop:-14}},"HR")),
+      e("p",{style:{fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:20}},T("heroSub")),
+      e("p",{style:{maxWidth:460,fontSize:15,color:"rgba(238,240,255,0.55)",lineHeight:1.85,marginBottom:44}},T("m1d").length>10?t(lang,"m1d"):"Automatizá tu área de RRHH con IA."),
+      e("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:16}},
+        e("button",{onClick:()=>setPage("app"),style:{padding:"15px 44px",borderRadius:12,background:"#4facf7",color:"#030508",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",letterSpacing:"0.06em",boxShadow:"0 0 30px rgba(79,172,247,0.35)"}},T("start")),
+        e("div",{style:{display:"flex",gap:20}},T("benefits").map(t=>e("span",{key:t,style:{fontSize:11,color:"rgba(255,255,255,0.75)",fontFamily:"'IBM Plex Mono',monospace"}},"✓ "+t)))),
+      // Stats
+      e("div",{style:{display:"flex",marginTop:64,borderRadius:16,overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)",background:"rgba(255,255,255,0.02)"}},
+        [["4",T("statLabels")[0]],["6",T("statLabels")[1]],["∞",T("statLabels")[2]],["AI",T("statLabels")[3]]].map(([v,l],i)=>
+          e("div",{key:i,style:{padding:"20px 32px",textAlign:"center",borderRight:i<3?"1px solid rgba(255,255,255,0.06)":"none"}},
+            e("div",{style:{fontSize:28,fontWeight:700,color:"#5bc8ff",fontFamily:"'Cormorant Garamond',serif"}},v),
+            e("div",{style:{fontSize:9,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.1em",marginTop:4}},l))))),
+    // Modules
+    e("section",{style:{position:"relative",zIndex:1,maxWidth:960,margin:"0 auto",padding:"40px 24px 80px"}},
+      e("div",{style:{textAlign:"center",marginBottom:52}},
+        e("div",{style:{fontSize:10,color:"rgba(79,172,247,0.6)",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}},T("modules")),
+        e("h2",{style:{fontSize:"clamp(28px,4vw,44px)",fontFamily:"'Cormorant Garamond',serif",fontWeight:600,color:"rgba(238,240,255,0.95)"}},T("moduleTitle"))),
+      e("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:2}},
+        [{n:"01",icon:"◈",title:T("m1t"),sub:"CV Analyzer",desc:T("m1d"),color:"#4facf7"},
+         {n:"02",icon:"◇",title:T("m2t"),sub:"Document Generator",desc:T("m2d"),color:"#5b8ab0"},
+         {n:"03",icon:"◉",title:"Onboarding Bot",sub:"Onboarding Assistant",desc:T("m3d"),color:"#7c6fbc"},
+         {n:"04",icon:"◐",title:"DK Profile",sub:"Behavioral Assessment",desc:T("m4d"),color:"#a06848"}].map((m,i)=>
+          e("div",{key:i,style:{background:"rgba(255,255,255,0.025)",padding:"32px 28px",position:"relative",overflow:"hidden",cursor:"pointer",border:"1px solid rgba(255,255,255,0.05)"},onMouseEnter:ev=>{ev.currentTarget.style.background="rgba(255,255,255,0.05)";},onMouseLeave:ev=>{ev.currentTarget.style.background="rgba(255,255,255,0.025)";}},
+            e("div",{style:{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,"+m.color+",transparent)"}}),
+            e("div",{style:{fontSize:9,color:m.color+"70",fontFamily:"'IBM Plex Mono',monospace",marginBottom:18,letterSpacing:"0.1em"}},m.n),
+            e("div",{style:{fontSize:28,color:m.color,marginBottom:14,filter:"drop-shadow(0 0 6px "+m.color+"50)"}},m.icon),
+            e("h3",{style:{fontSize:18,fontWeight:600,fontFamily:"'Cormorant Garamond',serif",color:"#eef0ff",marginBottom:4}},m.title),
+            e("div",{style:{fontSize:9,color:m.color+"60",fontFamily:"'IBM Plex Mono',monospace",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14}},m.sub),
+            e("p",{style:{fontSize:13,color:"rgba(238,240,255,0.45)",lineHeight:1.75}},m.desc)))),
+      e("div",{style:{textAlign:"center",marginTop:48}},
+        e("button",{onClick:()=>setPage("app"),style:{padding:"13px 36px",borderRadius:10,border:"1px solid rgba(79,172,247,0.25)",background:"rgba(79,172,247,0.06)",color:G,fontSize:13,fontWeight:600,cursor:"pointer"}},T("tryBtn")))),
+    // Footer
+    e("footer",{style:{position:"relative",zIndex:1,borderTop:"1px solid rgba(255,255,255,0.05)",padding:"24px 40px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}},
+      e("span",{style:{fontSize:16,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:"#5bc8ff",letterSpacing:"0.18em"}},"DKHR"),
+      e("div",{style:{display:"flex",gap:16}},["ES","EN","PT","FR","DE","ZH"].map(l=>e("span",{key:l,style:{fontSize:10,color:"rgba(255,255,255,0.55)",fontFamily:"'IBM Plex Mono',monospace"}},l))),
+      e("span",{style:{fontSize:11,color:"rgba(255,255,255,0.55)",fontFamily:"'IBM Plex Mono',monospace"}},"Demo Mode · "+new Date().getFullYear()))
+  );
+
+  // ── App ────────────────────────────────────────────────────────
+  return e("div",{style:{minHeight:"100vh",background:"#060609",color:TX}},
+    e("header",{style:{borderBottom:"1px solid rgba(255,255,255,0.05)",padding:"0 24px",height:60,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,background:"rgba(6,6,9,0.85)",backdropFilter:"blur(20px)"}},
+      e("div",{style:{display:"flex",alignItems:"center",gap:12}},
+        e("button",{onClick:()=>setPage("landing"),style:{...GBTN,fontSize:10}},"← Inicio"),
+        e("div",{style:{width:1,height:18,background:"rgba(255,255,255,0.08)"}}),
+        e("span",{style:{fontSize:17,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",color:"#5bc8ff",letterSpacing:"0.16em"}},"DKHR")),
+      e(LangPill,{lang,setLang})),
+    e("div",{style:{background:"rgba(160,104,72,0.07)",borderBottom:"1px solid rgba(160,104,72,0.12)",padding:"7px 20px",textAlign:"center"}},
+      e("span",{style:{fontSize:10,color:"rgba(220,160,120,0.95)",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.06em"}},T("demoNote"))),
+    e("main",{style:{maxWidth:880,margin:"0 auto",padding:"28px 20px"}},
+      // Tab bar
+      e("div",{style:{display:"flex",background:"rgba(255,255,255,0.03)",borderRadius:14,padding:"4px",border:"1px solid rgba(255,255,255,0.07)",marginBottom:28,gap:2,overflowX:"auto"}},
+        tabs.map((t,i)=>e("button",{key:i,style:tabBtn(tab===i),onClick:()=>setTab(i)},t))),
+
+      // CV Tab
+      tab===0&&e("div",null,
+        e("div",{style:CARD},
+          e("label",{style:LBL},T("jdLabel")),
+          e("textarea",{rows:4,style:INP,placeholder:T("jdPh"),value:jd,onChange:ev=>setJd(ev.target.value)})),
+        e("div",{style:CARD},
+          e("label",{style:LBL},T("cvLabel")),
+          cvs.map((cv,i)=>e("div",{key:i,style:{display:"flex",gap:8,marginBottom:8,alignItems:"flex-start"}},
+            e("div",{style:{width:24,height:24,borderRadius:"50%",background:"rgba(79,172,247,0.1)",border:"1px solid rgba(79,172,247,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:G,flexShrink:0,marginTop:12,fontFamily:"'IBM Plex Mono',monospace"}},i+1),
+            e("textarea",{rows:3,style:{...INP,flex:1},placeholder:"CV #"+(i+1),value:cv,onChange:ev=>{const n=[...cvs];n[i]=ev.target.value;setCvs(n);}}),
+            cvs.length>1&&e("button",{style:{...GBTN,flexShrink:0},onClick:()=>setCvs(cvs.filter((_,j)=>j!==i))},"×"))),
+          cvs.length<4&&e("button",{style:{...GBTN,color:G,borderColor:"rgba(79,172,247,0.25)",marginTop:4},onClick:()=>setCvs([...cvs,""])},"+ "+T("addCv").replace("+ ",""))),
+        e("button",{style:PBTN,onClick:doAnalyze,disabled:cvLoad},cvLoad?T("analyzing"):T("analyzBtn")),
+        cvLoad&&e("div",{style:{marginTop:12}},e(Spinner,null)),
+        cvRes&&e("div",{style:{marginTop:20},className:"fade"},cvRes.map((c,i)=>
+          e("div",{key:i,style:{...CARD,borderColor:c.rank===1?"rgba(79,172,247,0.25)":"rgba(255,255,255,0.08)"}},
+            e("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:14}},
+              e("div",{style:{width:30,height:30,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:12,fontFamily:"'IBM Plex Mono',monospace",background:c.rank===1?"linear-gradient(135deg,"+G+","+GL+")":c.rank===2?"rgba(91,138,176,0.2)":"rgba(255,255,255,0.05)",color:c.rank===1?"#030508":c.rank===2?"#7aadd4":"rgba(255,255,255,0.65)"}},c.rank===1?"#1":"#"+c.rank),
+              e("div",{style:{fontWeight:600,fontSize:16,flex:1}},c.candidate),
+              e("div",{style:{padding:"5px 14px",borderRadius:8,background:"rgba(79,172,247,0.1)",border:"1px solid rgba(79,172,247,0.25)"}},
+                e("span",{style:{fontSize:20,fontWeight:700,color:G,fontFamily:"'IBM Plex Mono',monospace"}},c.score),
+                e("span",{style:{fontSize:10,color:MT,marginLeft:2}},"/100"))),
+            e("div",{style:{fontSize:13,color:MT,lineHeight:1.8,marginBottom:12}},c.summary),
+            e("div",{style:{marginBottom:8}},
+              e("span",{style:{fontSize:9,fontWeight:700,color:"#6aad8e",marginRight:8,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'IBM Plex Mono',monospace"}},T("str")),
+              c.strengths.map((x,j)=>e("span",{key:j,style:{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:11,margin:"2px",background:"rgba(61,122,92,0.15)",color:"#6aad8e",border:"1px solid rgba(61,122,92,0.25)"}},x))),
+            e("div",{style:{marginBottom:14}},
+              e("span",{style:{fontSize:9,fontWeight:700,color:"#ad6a6a",marginRight:8,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'IBM Plex Mono',monospace"}},T("gaps")),
+              c.gaps.map((x,j)=>e("span",{key:j,style:{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:11,margin:"2px",background:"rgba(122,61,61,0.15)",color:"#ad6a6a",border:"1px solid rgba(122,61,61,0.25)"}},x))),
+            e("div",{style:{borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:16}},
+              e("div",{style:{fontSize:10,fontWeight:700,color:G,letterSpacing:"0.1em",textTransform:"uppercase",fontFamily:"'IBM Plex Mono',monospace",marginBottom:10}},"DK Profile"),
+              e("div",{style:{fontSize:12,color:MT,marginBottom:14,fontStyle:"italic"}},c.pdaProfile),
+              e("div",{style:{display:"grid",gridTemplateColumns:"200px 1fr",gap:16,alignItems:"center"}},
+                e(RadarSVG,{data:c.pda,axes}),
+                e(Bars,{pda:c.pda,axes}))))))
+      ),
+
+      // Doc Tab
+      tab===1&&e("div",null,
+        e("div",{style:CARD},
+          e("label",{style:LBL},T("docLabel")),
+          e("select",{style:{...INP,resize:"none"},value:docType,onChange:ev=>{setDocType(Number(ev.target.value));setDocRes(null);}},doctypes.map((d,i)=>e("option",{key:i,value:i},d)))),
+        e("div",{style:CARD},
+          e("label",{style:LBL},T("detLabel")),
+          e("textarea",{rows:5,style:INP,placeholder:T("detPh"),value:docDet,onChange:ev=>setDocDet(ev.target.value)})),
+        e("button",{style:PBTN,onClick:doDoc,disabled:docLoad},docLoad?T("generating"):T("genBtn")),
+        docLoad&&e("div",{style:{marginTop:12}},e(Spinner,null)),
+        docRes&&e("div",{style:{marginTop:18},className:"fade"},
+          e("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:10}},
+            e("span",{style:{fontSize:10,color:G,fontFamily:"'IBM Plex Mono',monospace",textTransform:"uppercase",letterSpacing:"0.08em"}},doctypes[docType]),
+            e("button",{style:GBTN,onClick:()=>{try{navigator.clipboard.writeText(docRes);}catch(err){}setCopied(true);setTimeout(()=>setCopied(false),2000);}},copied?T("copied"):T("copy"))),
+          e("div",{style:{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:20,whiteSpace:"pre-wrap",fontSize:12,lineHeight:1.9,color:TX,maxHeight:380,overflow:"auto",fontFamily:"'IBM Plex Mono',monospace"}},docRes))
+      ),
+
+      // Bot Tab
+      tab===2&&e("div",null,
+        e("div",{style:CARD},
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},
+            e("label",{style:{...LBL,marginBottom:0}},T("ctxLabel")),
+            e("div",{style:{padding:"3px 12px",borderRadius:20,background:botOn?"rgba(61,122,92,0.15)":"rgba(122,61,61,0.15)",color:botOn?"#6aad8e":"#ad6a6a",fontSize:10,fontFamily:"'IBM Plex Mono',monospace",border:"1px solid "+(botOn?"rgba(61,122,92,0.3)":"rgba(122,61,61,0.3)")}},botOn?"● "+T("active"):"● "+T("inactive"))),
+          e("textarea",{rows:4,style:INP,placeholder:T("ctxPh"),value:ctx,onChange:ev=>{setCtx(ev.target.value);if(botOn)setBotOn(false);}}),
+          e("div",{style:{marginTop:12}},e("button",{style:PBTN,onClick:activateBot},T("activateBtn")))),
+        e("div",{style:{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,height:280,overflowY:"auto",padding:16,marginBottom:10}},
+          !botOn&&msgs.length===0&&e("div",{style:{textAlign:"center",color:"rgba(255,255,255,0.5)",fontSize:12,marginTop:100,fontFamily:"'IBM Plex Mono',monospace"}},T("chatEmpty")),
+          msgs.map((m,i)=>e("div",{key:i,style:{display:"flex",justifyContent:m.r==="u"?"flex-end":"flex-start",marginBottom:10}},
+            e("div",{style:{maxWidth:"74%",padding:"11px 14px",borderRadius:m.r==="u"?"12px 12px 3px 12px":"12px 12px 12px 3px",background:m.r==="u"?"linear-gradient(135deg,"+G+","+GL+")":"rgba(255,255,255,0.04)",color:m.r==="u"?"#030508":TX,fontSize:13,lineHeight:1.65,border:"1px solid "+(m.r==="u"?"transparent":"rgba(255,255,255,0.08)")}},m.c))),
+          botLoad&&e("div",{style:{display:"flex",justifyContent:"flex-start",marginBottom:8}},e("div",{style:{padding:"12px 16px",borderRadius:"12px 12px 12px 3px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)"}},e(Spinner,null))),
+          e("div",{ref:chatRef})),
+        e("div",{style:{display:"flex",gap:10}},
+          e("input",{type:"text",style:{...INP,flex:1,resize:"none"},placeholder:T("chatPh"),value:chatIn,onChange:ev=>setChatIn(ev.target.value),onKeyDown:ev=>ev.key==="Enter"&&sendMsg(),disabled:!botOn}),
+          e("button",{style:{...PBTN,opacity:botOn?1:.4,flexShrink:0},onClick:sendMsg,disabled:!botOn||botLoad},T("sendBtn")))
+      ),
+
+      // DK Tab
+      tab===3&&e(DKTest,{lang})
+    )
+  );
+}
+
+ReactDOM.render(React.createElement(App), document.getElementById("root"));
+</script>
+</body>
+</html>
   {id:1,  date:"11/06",time:"16:00",home:"México",          away:"Sudáfrica",      g:"A",venue:"Cd. de México"},
   {id:2,  date:"11/06",time:"23:00",home:"Corea del Sur",   away:"Rep. Checa",     g:"A",venue:"Guadalajara"},
   {id:3,  date:"18/06",time:"13:00",home:"Rep. Checa",      away:"Sudáfrica",      g:"A",venue:"Atlanta"},
