@@ -661,7 +661,18 @@ function render(){
    HANDLERS GLOBALES
 ══════════════════════════════════════════════════════ */
 window.joinGame     = ()=>{ joinGame(document.getElementById("jn")?.value||"",document.getElementById("jd")?.value||""); };
-window.enterPlayer  = id=>{ STATE.player=id;STATE.screen="player";STATE.tab="pronosticar";render(); };
+window.enterPlayer = id => {
+  const p = STATE.participants[id];
+  if (!p) return;
+  const dni = prompt(`🔒 Hola ${p.name}!\nIngresá tu DNI para verificar tu identidad:`);
+  if (dni === null) return; // canceló
+  if (String(dni).trim() === String(p.dni)) {
+    STATE.player = id; STATE.screen = "player"; STATE.tab = "pronosticar"; render();
+    setTimeout(() => { showReminder(p); requestNotifPermission(p); }, 600);
+  } else {
+    alert("❌ DNI incorrecto. No podés acceder a este perfil.");
+  }
+};
 window.tryAdmin     = ()=>{ tryAdminLogin(document.getElementById("pi")?.value||""); };
 window.goWelcome    = ()=>{ STATE.screen="welcome";STATE.player=null;render(); };
 window.setTab       = t =>{ STATE.tab=t;render(); };
