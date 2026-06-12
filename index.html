@@ -271,14 +271,27 @@ async function syncResults() {
   if(!AS.apiKey){ showToast("Falta la API Key en la pestaña Auto-sync"); return; }
   AS.syncing=true; AS.lastError=""; render();
   try {
-    const url="https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED";
-    const resp = await fetch(url,{headers:{"X-Auth-Token":AS.apiKey}});
-    if(!resp.ok) throw new Error(`Error ${resp.status} — verificá tu API Key`);
-    const data = await resp.json();
+    const apiUrl = "https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED";
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+    let resp, data;
+
+    // Intento 1: directo
+    try {
+      resp = await fetch(apiUrl, {headers:{"X-Auth-Token":AS.apiKey}});
+      if(!resp.ok) throw new Error("direct_fail");
+      data = await resp.json();
+    } catch(e) {
+      // Intento 2: con proxy CORS
+      resp = await fetch(proxyUrl, {headers:{"X-Auth-Token":AS.apiKey,"x-requested-with":"XMLHttpRequest"}});
+      if(!resp.ok) throw new Error(`Error ${resp.status} — verificá tu API Key`);
+      data = await resp.json();
+    }
+
+    const matches = data.matches || data.response || [];
     const updates={};
-    for(const m of (data.matches||[])){
-      const h=m.score?.fullTime?.home;
-      const a=m.score?.fullTime?.away;
+    for(const m of matches){
+      const h=m.score?.fullTime?.home ?? m.score?.fullTime?.homeTeam;
+      const a=m.score?.fullTime?.away ?? m.score?.fullTime?.awayTeam;
       if(h==null||a==null) continue;
       const apiHome = TEAM_MAP[m.homeTeam?.name]||m.homeTeam?.name||"";
       const apiAway = TEAM_MAP[m.awayTeam?.name]||m.awayTeam?.name||"";
@@ -288,7 +301,6 @@ async function syncResults() {
       );
       if(!found) continue;
       const ex=STATE.results[found.id];
-      // si es partido invertido en API, invertir scores
       const isFlipped = found.home===apiAway;
       const fh=isFlipped?a:h, fa=isFlipped?h:a;
       if(!ex||ex.h!==fh||ex.a!==fa) updates[found.id]={h:fh,a:fa};
@@ -303,6 +315,70 @@ async function syncResults() {
   }
   AS.syncing=false; render();
 }
+
+/* ══ POPUP DE PUNTOS DEL DÍA ════════════════════════════ */
+function showPointsPopup(player) {
+  const key = `prode26_pts_${player.id}`;
+  const today = new Date().toDateString();
+  if(localStorage.getItem(key)===today) return; // ya se mostró hoy
+
+  // Partidos jugados hoy
+  const todayMatches = MATCHES.filter(m => {
+    const res = STATE.results[m.id];
+    if(!res) return false;
+    return matchKickoff(m).toDateString() === today;
+  });
+  if(!todayMatches.length) return;
+
+  // Calcular puntos de hoy
+  let totalHoy = 0;
+  const detalles = todayMatches.map(m => {
+    const pred = STATE.predictions[`${player.id}_${m.id}`];
+    const res  = STATE.results[m.id];
+    const pts  = calcPts(pred, res);
+    if(pts===null) return null;
+    totalHoy += pts;
+    let msg = "";
+    if(pts===3) msg=`⭐ ¡Exacto! Pronosticaste ${pred.h}-${pred.a} y salió ${res.h}-${res.a}`;
+    else if(pts===1) msg=`✓ Acertaste el resultado (no el marcador exacto)`;
+    else if(!pred) msg=`✗ No cargaste pronóstico`;
+    else msg=`✗ Pronosticaste ${pred.h}-${pred.a}, salió ${res.h}-${res.a}`;
+    return {m, pts, msg};
+  }).filter(Boolean);
+
+  if(!detalles.length) return;
+
+  const rows = detalles.map(d=>`
+    <div style="padding:10px 0;border-bottom:1px solid #1a2a52;display:flex;flex-direction:column;gap:4px">
+      <div style="font-family:'Oswald',sans-serif;font-size:15px;color:#e8f0ff">${d.m.home} vs ${d.m.away}</div>
+      <div style="font-size:12px;color:${d.pts===3?"#f1c40f":d.pts===1?"#3b9eff":"#e74c3c"}">${d.msg}</div>
+      <div style="font-size:11px;color:#3a5a9a">${d.pts>0?`+${d.pts} punto${d.pts>1?"s":""}`:"Sin puntos"}</div>
+    </div>`).join("");
+
+  const div = document.createElement("div");
+  div.id = "pts-overlay";
+  div.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:700;padding:20px;opacity:0;transition:opacity .25s";
+  div.innerHTML=`
+    <div style="background:#0a1020;border:1px solid #3b9eff;border-radius:16px;width:100%;max-width:420px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(59,158,255,.25)">
+      <div style="padding:18px 18px 14px;border-bottom:1px solid #1a2a52;text-align:center">
+        <div style="font-family:'Oswald',sans-serif;font-size:24px;color:#3b9eff;letter-spacing:2px">📊 Resumen de hoy</div>
+        <div style="font-size:13px;color:#3a5a9a;margin-top:4px">${player.name} · ${new Date().toLocaleDateString("es-AR")}</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:42px;color:${totalHoy>0?"#f1c40f":"#e74c3c"};margin-top:8px">${totalHoy>0?"+"+totalHoy:totalHoy}</div>
+        <div style="font-size:12px;color:#3a5a9a">puntos ganados hoy</div>
+      </div>
+      <div style="padding:0 16px;overflow-y:auto;flex:1">${rows}</div>
+      <div style="padding:14px 16px;border-top:1px solid #1a2a52">
+        <button onclick="document.getElementById('pts-overlay').style.opacity=0;setTimeout(()=>document.getElementById('pts-overlay')?.remove(),300)"
+          style="width:100%;background:linear-gradient(135deg,#3b9eff,#0077e6);color:#000;border:none;border-radius:8px;padding:12px;font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer">
+          CERRAR
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  setTimeout(()=>div.style.opacity="1",30);
+  localStorage.setItem(key, today);
+}
+
 
 function toggleAutoSync() {
   AS.autoSync=!AS.autoSync;
@@ -668,7 +744,7 @@ window.enterPlayer = id => {
   if (dni === null) return; // canceló
   if (String(dni).trim() === String(p.dni)) {
     STATE.player = id; STATE.screen = "player"; STATE.tab = "pronosticar"; render();
-    setTimeout(() => { showReminder(p); requestNotifPermission(p); }, 600);
+    setTimeout(() => { showReminder(p); requestNotifPermission(p); showPointsPopup(p); }, 600);
   } else {
     alert("❌ DNI incorrecto. No podés acceder a este perfil.");
   }
