@@ -1,0 +1,23 @@
+name: Auto-sync Resultados Mundial 2026
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # cada 10 minutos, 24/7
+  workflow_dispatch:           # también se puede ejecutar manualmente
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Ejecutar sync de resultados
+        env:
+          FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
+        run: node sync.js
