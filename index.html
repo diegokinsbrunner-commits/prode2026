@@ -615,7 +615,7 @@ function renderAdmin(){
   const playedCnt=MATCHES.filter(m=>STATE.results[m.id]).length;
   const top=`<div class="topbar"><button class="bb" onclick="window.goWelcome()">←</button>
     <div><div class="tn2">⚙️ Admin</div><div class="ts2">${playedCnt}/104 resultados cargados</div></div></div>`;
-  const tabs=`<div class="tabs">${[["resultados","⚽ Resultados"],["jugadores","👥 Jugadores"],["autosync","🔄 Auto-sync"]].map(([k,l])=>
+  const tabs=`<div class="tabs">${[["resultados","⚽ Resultados"],["pronosticos","👁 Pronósticos"],["jugadores","👥 Jugadores"],["autosync","🔄 Auto-sync"]].map(([k,l])=>
     `<button class="tab${STATE.adminTab===k?" active":""}" onclick="window.setAdminTab('${k}')">${l}</button>`).join("")}</div>`;
 
   let content="";
@@ -627,6 +627,62 @@ function renderAdmin(){
       ${STATE.mode==="grupos"
         ? groupPicker(GROUPS,STATE.filterG,"setFG")+`<div class="cards">${MATCHES.filter(m=>m.g===STATE.filterG).map(m=>matchCard(m,null,true)).join("")}</div>`
         : groupPicker(KO_PHASES,STATE.filterPh,"setFP",true)+`<div class="cards">${MATCHES.filter(m=>m.ph===STATE.filterPh).map(m=>matchCard(m,null,true)).join("")}</div>`}`;
+  }
+
+  /* ── PRONÓSTICOS (solo lectura) ── */
+  if(STATE.adminTab==="pronosticos"){
+    const players = Object.values(STATE.participants).sort((a,b)=>a.name.localeCompare(b.name));
+    const filteredMatches = STATE.mode==="grupos"
+      ? MATCHES.filter(m=>m.g===STATE.filterG)
+      : MATCHES.filter(m=>m.ph===STATE.filterPh);
+
+    const matchCards = filteredMatches.map(m=>{
+      const res = STATE.results[m.id];
+      const locked = isLocked(m);
+      const playerPreds = players.map(p=>{
+        const pred = STATE.predictions[`${p.id}_${m.id}`];
+        const hasPred = pred && pred.h!=null;
+        const pts = res && hasPred ? calcPts(pred,res) : null;
+        let bg="#1a2a52", col="#3a5a9a", txt="—";
+        if(hasPred){
+          txt=`${pred.h}-${pred.a}`;
+          if(pts===3){bg="#2a2000";col="#f1c40f";}
+          else if(pts===1){bg="#001a2a";col="#3b9eff";}
+          else if(pts===0){bg="#2a0a0a";col="#e74c3c";}
+          else{bg="#0a1a30";col="#e8f0ff";}
+        }
+        return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:${bg};border-radius:6px;margin-bottom:4px">
+          <span style="font-size:13px;color:#e8f0ff;font-family:'Oswald',sans-serif">${p.name}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:'Oswald',sans-serif;font-size:17px;color:${col};letter-spacing:1px">${txt}</span>
+            ${pts===3?`<span style="font-size:11px;color:#f1c40f">⭐+3</span>`
+              :pts===1?`<span style="font-size:11px;color:#3b9eff">✓+1</span>`
+              :pts===0?`<span style="font-size:11px;color:#e74c3c">✗+0</span>`:""}
+          </div>
+        </div>`;
+      }).join("");
+
+      return`<div class="mc" style="border-color:${res?"#3b9eff44":"#1a2a52"}">
+        <div class="mm">
+          <span>📅 ${m.date}${m.time?" · "+m.time+"hs":""} · ${m.venue}${m.g?`<span class="tg">G${m.g}</span>`:""}${m.ph?`<span class="tp">${m.ph}</span>`:""}</span>
+          ${res?`<span style="font-family:'Oswald',sans-serif;font-size:13px;color:#3b9eff">${res.h}–${res.a}</span>`
+               :locked?`<span style="font-size:11px;color:#3a5a9a">🔒 En juego</span>`
+               :`<span style="font-size:11px;color:#3a5a9a">Pendiente</span>`}
+        </div>
+        <div style="font-family:'Oswald',sans-serif;font-size:13px;color:#3a5a9a;margin-bottom:8px">${m.home} vs ${m.away}</div>
+        ${playerPreds}
+      </div>`;
+    }).join("");
+
+    content=`
+      <div class="leg" style="margin-bottom:12px;color:#3a5a9a">
+        Solo lectura — los pronósticos de todos los jugadores. ⭐ exacto · ✓ resultado · ✗ fallo
+      </div>
+      ${modePicker()}
+      ${STATE.mode==="grupos"
+        ? groupPicker(GROUPS,STATE.filterG,"setFG")
+        : groupPicker(KO_PHASES,STATE.filterPh,"setFP",true)}
+      <div class="cards">${matchCards}</div>`;
   }
 
   /* ── JUGADORES ── */
@@ -685,6 +741,7 @@ function renderAdmin(){
 
   return top+tabs+`<div class="box" style="padding-top:12px">${content}</div>`;
 }
+
 
 /* helpers reutilizables */
 function modePicker(){
