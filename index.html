@@ -53,9 +53,9 @@ const MATCHES = [
   {id:17, date:"24/06",time:"19:00",home:"Marruecos",       away:"Haití",          g:"C",venue:"Atlanta"},
   {id:18, date:"24/06",time:"19:00",home:"Brasil",          away:"Escocia",        g:"C",venue:"Miami"},
   {id:19, date:"12/06",time:"22:00",home:"Estados Unidos",  away:"Paraguay",       g:"D",venue:"Los Ángeles"},
-  {id:20, date:"13/06",time:"01:00",home:"Australia",       away:"Turquía",        g:"D",venue:"Vancouver"},
+  {id:20, date:"14/06",time:"01:00",home:"Australia",       away:"Turquía",        g:"D",venue:"Vancouver"},
   {id:21, date:"19/06",time:"16:00",home:"Estados Unidos",  away:"Australia",      g:"D",venue:"Seattle"},
-  {id:22, date:"19/06",time:"00:00",home:"Turquía",         away:"Paraguay",       g:"D",venue:"San Francisco"},
+  {id:22, date:"20/06",time:"00:00",home:"Turquía",         away:"Paraguay",       g:"D",venue:"San Francisco"},
   {id:23, date:"25/06",time:"23:00",home:"Paraguay",        away:"Australia",      g:"D",venue:"San Francisco"},
   {id:24, date:"25/06",time:"23:00",home:"Turquía",         away:"Estados Unidos", g:"D",venue:"Los Ángeles"},
   {id:25, date:"14/06",time:"14:00",home:"Alemania",        away:"Curazao",        g:"E",venue:"Houston"},
@@ -67,15 +67,15 @@ const MATCHES = [
   {id:31, date:"14/06",time:"17:00",home:"Países Bajos",    away:"Japón",          g:"F",venue:"Dallas"},
   {id:32, date:"14/06",time:"23:00",home:"Suecia",          away:"Túnez",          g:"F",venue:"Monterrey"},
   {id:33, date:"20/06",time:"14:00",home:"Países Bajos",    away:"Suecia",         g:"F",venue:"Houston"},
-  {id:34, date:"20/06",time:"01:00",home:"Túnez",           away:"Japón",          g:"F",venue:"Monterrey"},
+  {id:34, date:"21/06",time:"01:00",home:"Túnez",           away:"Japón",          g:"F",venue:"Monterrey"},
   {id:35, date:"25/06",time:"20:00",home:"Japón",           away:"Suecia",         g:"F",venue:"Dallas"},
   {id:36, date:"25/06",time:"20:00",home:"Túnez",           away:"Países Bajos",   g:"F",venue:"Kansas City"},
   {id:37, date:"15/06",time:"16:00",home:"Bélgica",         away:"Egipto",         g:"G",venue:"Seattle"},
   {id:38, date:"15/06",time:"22:00",home:"Irán",            away:"Nueva Zelanda",  g:"G",venue:"Los Ángeles"},
   {id:39, date:"21/06",time:"16:00",home:"Bélgica",         away:"Irán",           g:"G",venue:"Los Ángeles"},
   {id:40, date:"21/06",time:"22:00",home:"Nueva Zelanda",   away:"Egipto",         g:"G",venue:"Vancouver"},
-  {id:41, date:"26/06",time:"00:00",home:"Egipto",          away:"Irán",           g:"G",venue:"Seattle"},
-  {id:42, date:"26/06",time:"00:00",home:"Nueva Zelanda",   away:"Bélgica",        g:"G",venue:"Vancouver"},
+  {id:41, date:"27/06",time:"00:00",home:"Egipto",          away:"Irán",           g:"G",venue:"Seattle"},
+  {id:42, date:"27/06",time:"00:00",home:"Nueva Zelanda",   away:"Bélgica",        g:"G",venue:"Vancouver"},
   {id:43, date:"15/06",time:"13:00",home:"España",          away:"Cabo Verde",     g:"H",venue:"Atlanta"},
   {id:44, date:"15/06",time:"19:00",home:"Arabia Saudita",  away:"Uruguay",        g:"H",venue:"Miami"},
   {id:45, date:"21/06",time:"13:00",home:"España",          away:"Arabia Saudita", g:"H",venue:"Atlanta"},
@@ -89,9 +89,9 @@ const MATCHES = [
   {id:53, date:"26/06",time:"16:00",home:"Noruega",         away:"Francia",        g:"I",venue:"Boston"},
   {id:54, date:"26/06",time:"16:00",home:"Senegal",         away:"Irak",           g:"I",venue:"Toronto"},
   {id:55, date:"16/06",time:"22:00",home:"Argentina",       away:"Argelia",        g:"J",venue:"Kansas City"},
-  {id:56, date:"16/06",time:"01:00",home:"Austria",         away:"Jordania",       g:"J",venue:"San Francisco"},
+  {id:56, date:"17/06",time:"01:00",home:"Austria",         away:"Jordania",       g:"J",venue:"San Francisco"},
   {id:57, date:"22/06",time:"14:00",home:"Argentina",       away:"Austria",        g:"J",venue:"Dallas"},
-  {id:58, date:"22/06",time:"00:00",home:"Jordania",        away:"Argelia",        g:"J",venue:"San Francisco"},
+  {id:58, date:"23/06",time:"00:00",home:"Jordania",        away:"Argelia",        g:"J",venue:"San Francisco"},
   {id:59, date:"27/06",time:"23:00",home:"Argelia",         away:"Austria",        g:"J",venue:"Kansas City"},
   {id:60, date:"27/06",time:"23:00",home:"Jordania",        away:"Argentina",      g:"J",venue:"Dallas"},
   {id:61, date:"17/06",time:"14:00",home:"Portugal",        away:"RD Congo",       g:"K",venue:"Houston"},
@@ -560,7 +560,7 @@ function renderPlayer(){
     <div class="ti2"><div class="tn2">${p.name}</div><div class="ts2">${rank>0?"#"+rank+" · ":""}<span style="color:#3b9eff">${my.pts}</span> pts</div></div>
     <div class="ms"><div class="ms1"><span style="color:#3b9eff">${my.pts}</span><span>PTS</span></div><div class="ms1"><span style="color:#f1c40f">${my.exact}</span><span>EX</span></div><div class="ms1"><span style="color:#3b9eff">${my.correct}</span><span>OK</span></div></div></div>`;
 
-  const tabs=`<div class="tabs">${[["pronosticar","🎯 Pronosticar"],["mis-resultados","📊 Resultados"],["tabla","🏅 Tabla"]].map(([k,l])=>
+  const tabs=`<div class="tabs">${[["pronosticar","🎯 Pronosticar"],["mis-resultados","📊 Resultados"],["pronosticos-grupo","👁 Todos"],["tabla","🏅 Tabla"]].map(([k,l])=>
     `<button class="tab${STATE.tab===k?" active":""}" onclick="window.setTab('${k}')">${l}</button>`).join("")}</div>`;
 
   let content="";
@@ -607,6 +607,69 @@ function renderPlayer(){
   }
 
   if(STATE.tab==="tabla") content=leaderboardHTML(board,p.id);
+
+  if(STATE.tab==="pronosticos-grupo"){
+    const players = Object.values(STATE.participants).sort((a,b)=>a.name.localeCompare(b.name));
+    const finishedMatches = MATCHES.filter(m => STATE.results[m.id]);
+
+    if(finishedMatches.length === 0){
+      content = `<div class="empty">⏳ Aún no hay partidos terminados. Los pronósticos de todos se muestran aquí una vez finalizado cada partido.</div>`;
+    } else {
+      // Filter by group/phase
+      const filteredMatches = STATE.mode==="grupos"
+        ? finishedMatches.filter(m=>m.g===STATE.filterG)
+        : finishedMatches.filter(m=>m.ph===STATE.filterPh);
+
+      const matchCards = filteredMatches.map(m=>{
+        const res = STATE.results[m.id];
+        const playerRows = players.map(pl=>{
+          const pred = STATE.predictions[`${pl.id}_${m.id}`];
+          const hasPred = pred && pred.h!=null;
+          const pts = hasPred ? calcPts(pred,res) : null;
+          const isMe = pl.id === p.id;
+          let bg="#0d1a38", scoreColor="#3a5a9a", txt="—";
+          if(hasPred){
+            txt=`${pred.h}–${pred.a}`;
+            if(pts===3){bg="#2a1e00";scoreColor="#f1c40f";}
+            else if(pts===1){bg="#001830";scoreColor="#3b9eff";}
+            else{bg="#1a0808";scoreColor="#e74c3c";}
+          }
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:${bg};border-radius:6px;margin-bottom:4px;border:1px solid ${isMe?"#3b9eff33":"transparent"}">
+            <span style="font-size:13px;color:${isMe?"#3b9eff":"#e8f0ff"};font-family:'Oswald',sans-serif">${pl.name}${isMe?" ←":""}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-family:'Oswald',sans-serif;font-size:18px;color:${scoreColor};letter-spacing:1px">${txt}</span>
+              ${pts===3?`<span style="font-size:11px;color:#f1c40f">⭐+3</span>`
+                :pts===1?`<span style="font-size:11px;color:#3b9eff">✓+1</span>`
+                :pts===0?`<span style="font-size:11px;color:#e74c3c">✗+0</span>`
+                :`<span style="font-size:11px;color:#3a5a9a">sin pronóstico</span>`}
+            </div>
+          </div>`;
+        }).join("");
+
+        return `<div class="mc" style="border-color:#3b9eff33">
+          <div class="mm">
+            <span>📅 ${m.date} · ${m.venue}${m.g?`<span class="tg">G${m.g}</span>`:""}${m.ph?`<span class="tp">${m.ph}</span>`:""}</span>
+            <span style="font-family:'Oswald',sans-serif;font-size:15px;color:#3b9eff">${res.h}–${res.a}</span>
+          </div>
+          <div style="font-family:'Oswald',sans-serif;font-size:13px;color:#3a5a9a;margin-bottom:8px">${m.home} vs ${m.away}</div>
+          ${playerRows}
+        </div>`;
+      }).join("");
+
+      const noMatches = filteredMatches.length === 0
+        ? `<div class="empty">No hay partidos terminados en esta sección todavía.</div>` : "";
+
+      content = `
+        <div class="leg" style="margin-bottom:10px">
+          👁 Pronósticos de todos — solo partidos <strong style="color:#3b9eff">ya terminados</strong>
+        </div>
+        ${modePicker()}
+        ${STATE.mode==="grupos"
+          ? groupPicker(GROUPS,STATE.filterG,"setFG")
+          : groupPicker(KO_PHASES,STATE.filterPh,"setFP",true)}
+        <div class="cards">${matchCards || noMatches}</div>`;
+    }
+  }
 
   return top+tabs+`<div class="box" style="padding-top:12px">${content}</div>`;
 }
