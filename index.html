@@ -192,6 +192,7 @@ const db    = getDatabase(fbApp);
 let STATE = {
   screen:"welcome", player:null, tab:"pronosticar",
   adminTab:"resultados", mode:"grupos", filterG:"A", filterPh:"16avos",
+  corrP:"", corrM:"",
   participants:{}, predictions:{}, results:{},
   pendingDelete: null,  // id del jugador esperando confirmación de borrado
 };
@@ -678,7 +679,7 @@ function renderAdmin(){
   const playedCnt=MATCHES.filter(m=>STATE.results[m.id]).length;
   const top=`<div class="topbar"><button class="bb" onclick="window.goWelcome()">←</button>
     <div><div class="tn2">⚙️ Admin</div><div class="ts2">${playedCnt}/104 resultados cargados</div></div></div>`;
-  const tabs=`<div class="tabs">${[["resultados","⚽ Resultados"],["pronosticos","👁 Pronósticos"],["jugadores","👥 Jugadores"],["autosync","🔄 Auto-sync"]].map(([k,l])=>
+  const tabs=`<div class="tabs">${[["resultados","⚽ Resultados"],["pronosticos","👁 Pronósticos"],["correcciones","✏️ Correcciones"],["jugadores","👥 Jugadores"],["autosync","🔄 Auto-sync"]].map(([k,l])=>
     `<button class="tab${STATE.adminTab===k?" active":""}" onclick="window.setAdminTab('${k}')">${l}</button>`).join("")}</div>`;
 
   let content="";
@@ -746,6 +747,71 @@ function renderAdmin(){
         ? groupPicker(GROUPS,STATE.filterG,"setFG")
         : groupPicker(KO_PHASES,STATE.filterPh,"setFP",true)}
       <div class="cards">${matchCards}</div>`;
+  }
+
+  /* ── CORRECCIONES (admin corrige pronósticos perdidos) ── */
+  if(STATE.adminTab==="correcciones"){
+    const players = Object.values(STATE.participants).sort((a,b)=>a.name.localeCompare(b.name));
+    const lockedMatches = MATCHES.filter(m=>isLocked(m)&&STATE.results[m.id]).slice(0,72);
+
+    const selP = STATE.corrP || (players[0]?.id||"");
+    const selM = STATE.corrM || "";
+    if(!STATE.corrP && players[0]) STATE.corrP = players[0].id;
+
+    const playerOpts = players.map(p=>`<option value="${p.id}" ${selP===p.id?"selected":""}>${p.name}</option>`).join("");
+    const matchOpts  = lockedMatches.map(m=>`<option value="${m.id}" ${selM==m.id?"selected":""}>${m.date} · ${m.home} vs ${m.away}</option>`).join("");
+
+    const selMatch = lockedMatches.find(m=>m.id==selM);
+    const existPred = selP && selM ? (STATE.predictions[`${selP}_${selM}`]||null) : null;
+    const res = selM ? STATE.results[selM] : null;
+
+    content=`
+      <div style="font-size:12px;color:#3a5a9a;margin-bottom:16px;padding:12px;background:#0a1020;border:1px solid #1a2a52;border-radius:8px">
+        ✏️ Usá esta sección para corregir pronósticos que no se guardaron correctamente.
+      </div>
+
+      <div class="sl">1. Seleccionar jugador</div>
+      <select id="corr-player" onchange="window.setCorrP(this.value)"
+        style="width:100%;background:#0d1525;border:1px solid #1a2a52;color:#e8f0ff;border-radius:8px;padding:10px;font-family:'Oswald',sans-serif;font-size:15px;margin-bottom:16px;outline:none">
+        ${playerOpts}
+      </select>
+
+      <div class="sl">2. Seleccionar partido</div>
+      <select id="corr-match" onchange="window.setCorrM(this.value)"
+        style="width:100%;background:#0d1525;border:1px solid #1a2a52;color:#e8f0ff;border-radius:8px;padding:10px;font-family:'Oswald',sans-serif;font-size:15px;margin-bottom:16px;outline:none">
+        <option value="">— Elegir partido —</option>
+        ${matchOpts}
+      </select>
+
+      ${selMatch && res ? `
+        <div style="background:#0d1525;border:1px solid #1a2a52;border-radius:10px;padding:14px;margin-bottom:16px">
+          <div style="font-size:11px;color:#3a5a9a;margin-bottom:10px">${selMatch.date} · ${selMatch.venue}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="flex:1;font-family:'Oswald',sans-serif;color:#e8f0ff">${selMatch.home}</span>
+            <div style="display:flex;align-items:center;gap:4px">
+              <input type="number" min="0" max="20" id="corr-h" value="${existPred?existPred.h:""}" placeholder="–"
+                style="width:42px;height:38px;text-align:center;background:#06090f;border:1px solid #1a2a52;color:#e8f0ff;border-radius:6px;font-size:18px;font-family:'Oswald',sans-serif;outline:none"/>
+              <span style="color:#3b9eff;font-size:18px;font-weight:bold">-</span>
+              <input type="number" min="0" max="20" id="corr-a" value="${existPred?existPred.a:""}" placeholder="–"
+                style="width:42px;height:38px;text-align:center;background:#06090f;border:1px solid #1a2a52;color:#e8f0ff;border-radius:6px;font-size:18px;font-family:'Oswald',sans-serif;outline:none"/>
+            </div>
+            <span style="flex:1;font-family:'Oswald',sans-serif;color:#e8f0ff;text-align:right">${selMatch.away}</span>
+          </div>
+          <div style="font-size:12px;color:#3a5a9a">
+            Resultado real: <strong style="color:#3b9eff">${res.h} – ${res.a}</strong>
+            ${existPred?`&nbsp;·&nbsp; Pronóstico actual: <strong style="color:#e8f0ff">${existPred.h}–${existPred.a}</strong>`:"&nbsp;·&nbsp; <span style='color:#e74c3c'>Sin pronóstico guardado</span>"}
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button onclick="window.saveCorrection()" class="ba" style="flex:1">
+            💾 GUARDAR CORRECCIÓN
+          </button>
+          ${existPred?`<button onclick="window.deleteCorrection()" style="background:transparent;color:#e74c3c;border:1px solid #e74c3c33;border-radius:8px;padding:10px 14px;font-family:'Oswald',sans-serif;font-size:13px;cursor:pointer">
+            🗑 BORRAR
+          </button>`:""}
+        </div>
+      ` : `<div class="empty">Seleccioná un jugador y un partido para corregir.</div>`}
+    `;
   }
 
   /* ── JUGADORES ── */
@@ -883,6 +949,29 @@ window.syncNow      = ()=>{ syncResults(); };
 window.toggleAutoSync=()=>{ toggleAutoSync(); };
 window.saveApiKey   = k =>{ saveApiKey(k); };
 
+/* ── CORRECCIONES admin ── */
+window.setCorrP = id => { STATE.corrP=id; STATE.corrM=""; render(); };
+window.setCorrM = id => { STATE.corrM=id; render(); };
+window.saveCorrection = () => {
+  const h = document.getElementById("corr-h")?.value;
+  const a = document.getElementById("corr-a")?.value;
+  if (h===""||a===""||h==null||a==null) { showToast("Completá el marcador"); return; }
+  if (!STATE.corrP||!STATE.corrM) { showToast("Seleccioná jugador y partido"); return; }
+  update(ref(db,"prode26/predictions"), {
+    [`${STATE.corrP}_${STATE.corrM}`]: { h:+h, a:+a }
+  });
+  showToast("✅ Pronóstico corregido");
+  render();
+};
+window.deleteCorrection = () => {
+  if (!STATE.corrP||!STATE.corrM) return;
+  update(ref(db,"prode26/predictions"), {
+    [`${STATE.corrP}_${STATE.corrM}`]: null
+  });
+  showToast("🗑 Pronóstico borrado");
+  render();
+};
+
 window.onPred = (mid,hId,aId)=>{
   if(!STATE.player)return;
   const m=MATCHES.find(x=>x.id===mid); if(!m||isLocked(m))return;
@@ -947,7 +1036,8 @@ function showReminder(player) {
   const matches = MATCHES.filter(m => {
     const ko = matchKickoff(m).getTime();
     return ko > now && ko <= in7d && !isLocked(m);
-  }).slice(0, 8); // máximo 8 partidos
+  }).sort((a,b) => matchKickoff(a).getTime() - matchKickoff(b).getTime())
+  .slice(0, 8); // máximo 8 partidos, ordenados por fecha
 
   if (!matches.length) return;
 
@@ -1050,17 +1140,22 @@ window.dismissReminder = function(save) {
   if (save && STATE.player) {
     const now  = Date.now();
     const in7d = now + 7 * 24 * 60 * 60 * 1000;
+    // mismo sort que showReminder para que los IDs coincidan
     const matches = MATCHES.filter(m => {
       const ko = matchKickoff(m).getTime();
-      return ko > now && ko <= in7d && !isLocked(m);
-    }).slice(0, 8);
+      return ko > now && ko <= in7d;
+    }).sort((a,b) => matchKickoff(a).getTime() - matchKickoff(b).getTime())
+    .slice(0, 8);
 
     let saved = 0;
     matches.forEach(m => {
       const hEl = document.getElementById(`rm_${m.id}_h`);
       const aEl = document.getElementById(`rm_${m.id}_a`);
       if (hEl && aEl && hEl.value !== "" && aEl.value !== "") {
-        setPred(STATE.player, m.id, hEl.value, aEl.value);
+        // Guardado directo en Firebase sin chequeo de isLocked
+        update(ref(db,"prode26/predictions"), {
+          [`${STATE.player}_${m.id}`]: { h: +hEl.value, a: +aEl.value }
+        });
         saved++;
       }
     });
