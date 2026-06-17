@@ -7,6 +7,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
 
+<!-- OneSignal Push Notifications — reemplazá TU_ONESIGNAL_APP_ID -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "TU_ONESIGNAL_APP_ID",
+      notifyButton: { enable: false },
+      promptOptions: {
+        actionMessage: "Recibí recordatorios antes de cada partido ⚽",
+        acceptButtonText: "¡Activar!",
+        cancelButtonText: "Ahora no",
+      }
+    });
+    window._oneSignalReady = true;
+  });
+</script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, update }
@@ -508,7 +526,8 @@ function renderWelcome(){
   const list=board.length===0?`<div class="empty">Nadie anotado todavía — ¡sé el primero!</div>`
     :board.map((p,i)=>{
       const medals=["🥇","🥈","🥉"];
-      const preds=Object.keys(STATE.predictions).filter(k=>k.startsWith(p.id+"_")).length;
+      const allPreds=Object.keys(STATE.predictions).filter(k=>k.startsWith(p.id+"_"));
+      const preds=allPreds.filter(k=>{const mid=+k.split("_")[1];return mid>=1&&mid<=72;}).length;
       return`<button class="pb" onclick="window.enterPlayer('${p.id}')">
         <div class="pl"><span style="width:26px;text-align:center;font-size:${i<3?17:13}px">${medals[i]||i+1}</span>${avatar(p.name)}<div><div class="pn">${p.name}</div><div class="ps">${preds} pronósticos</div></div></div>
         <div class="pp"><span class="bp">${p.pts}</span><span class="lp">PTS</span></div></button>`;
@@ -552,7 +571,7 @@ function renderPlayer(){
   const board=buildBoard();
   const my=board.find(x=>x.id===p.id)||{pts:0,exact:0,correct:0,wrong:0,played:0};
   const rank=board.findIndex(x=>x.id===p.id)+1;
-  const open=MATCHES.filter(m=>!isLocked(m));
+  const open=MATCHES.filter(m=>!isLocked(m)&&m.id<=72); // solo fase de grupos
   const myOpen=open.filter(m=>{const pr=STATE.predictions[`${p.id}_${m.id}`];return pr&&pr.h!=null;});
   const played=MATCHES.filter(m=>STATE.results[m.id]);
   const myPlayed=played.filter(m=>{const pr=STATE.predictions[`${p.id}_${m.id}`];return pr&&pr.h!=null;});
@@ -569,16 +588,13 @@ function renderPlayer(){
   if(STATE.tab==="pronosticar"){
     const pct=open.length?Math.round(myOpen.length/open.length*100):100;
     content=`
-      <div class="prog"><div class="prog-info"><span style="color:#e8f0ff">${myOpen.length}/${open.length} pronosticados</span><span style="color:${pct===100?"#3b9eff":"#3b9eff"}">${pct}%</span></div>
+      <div class="prog"><div class="prog-info"><span style="color:#e8f0ff">${myOpen.length}/72 grupos pronosticados</span><span style="color:${pct===100?"#3b9eff":"#3b9eff"}">${pct}%</span></div>
         <div class="pb2"><div class="pf" style="width:${pct}%;background:${pct===100?"#3b9eff":"#3b9eff"}"></div></div>
         ${pct<100?`<div style="font-size:11px;color:#3a5a9a;margin-top:3px">⚠️ Los pronósticos se bloquean al inicio de cada partido</div>`:""}
       </div>
       <div class="leg"><span style="color:#f1c40f">⭐ Exacto=3</span><span style="color:#3b9eff">✓ Resultado=1</span><span style="color:#e74c3c">✗ Fallo=0</span><span style="color:#3a5a9a">🔒=cerrado</span></div>
-      ${modePicker()}
-      ${STATE.mode==="grupos"
-        ? groupPicker(GROUPS,STATE.filterG,"setFG")+`<div class="cards">${MATCHES.filter(m=>m.g===STATE.filterG).map(m=>matchCard(m,p.id,false)).join("")}</div>`
-        : groupPicker(KO_PHASES,STATE.filterPh,"setFP",true)+`<div class="cards">${MATCHES.filter(m=>m.ph===STATE.filterPh).map(m=>matchCard(m,p.id,false)).join("")}</div>`
-      }`;
+      ${groupPicker(GROUPS,STATE.filterG,"setFG")}
+      <div class="cards">${MATCHES.filter(m=>m.g===STATE.filterG&&m.id<=72).map(m=>matchCard(m,p.id,false)).join("")}</div>`;
   }
 
   if(STATE.tab==="mis-resultados"){
@@ -664,7 +680,7 @@ function renderPlayer(){
         <div class="leg" style="margin-bottom:10px">
           👁 Pronósticos de todos — solo partidos <strong style="color:#3b9eff">ya terminados</strong>
         </div>
-        ${modePicker()}
+        ${modePicker(true)}
         ${STATE.mode==="grupos"
           ? groupPicker(GROUPS,STATE.filterG,"setFG")
           : groupPicker(KO_PHASES,STATE.filterPh,"setFP",true)}
@@ -687,7 +703,7 @@ function renderAdmin(){
   /* ── RESULTADOS ── */
   if(STATE.adminTab==="resultados"){
     content=`<div class="leg" style="margin-bottom:12px;color:#3a5a9a">Ingresá el marcador final — se actualiza para todos al instante.</div>
-      ${modePicker()}
+      ${modePicker(true)}
       ${STATE.mode==="grupos"
         ? groupPicker(GROUPS,STATE.filterG,"setFG")+`<div class="cards">${MATCHES.filter(m=>m.g===STATE.filterG).map(m=>matchCard(m,null,true)).join("")}</div>`
         : groupPicker(KO_PHASES,STATE.filterPh,"setFP",true)+`<div class="cards">${MATCHES.filter(m=>m.ph===STATE.filterPh).map(m=>matchCard(m,null,true)).join("")}</div>`}`;
@@ -742,7 +758,7 @@ function renderAdmin(){
       <div class="leg" style="margin-bottom:12px;color:#3a5a9a">
         Solo lectura — los pronósticos de todos los jugadores. ⭐ exacto · ✓ resultado · ✗ fallo
       </div>
-      ${modePicker()}
+      ${modePicker(true)}
       ${STATE.mode==="grupos"
         ? groupPicker(GROUPS,STATE.filterG,"setFG")
         : groupPicker(KO_PHASES,STATE.filterPh,"setFP",true)}
@@ -819,7 +835,8 @@ function renderAdmin(){
     const parts=Object.values(STATE.participants).sort((a,b)=>a.name.localeCompare(b.name));
     const rows=parts.length===0?`<div class="empty">No hay jugadores registrados.</div>`
       :parts.map(p=>{
-        const preds=Object.keys(STATE.predictions).filter(k=>k.startsWith(p.id+"_")).length;
+        const allP2=Object.keys(STATE.predictions).filter(k=>k.startsWith(p.id+"_"));
+        const preds=allP2.filter(k=>{const mid=+k.split("_")[1];return mid>=1&&mid<=72;}).length;
         const isPending=STATE.pendingDelete===p.id;
         return`<div class="player-row">
           <div class="pr-left">${avatar(p.name,32)}<div><div class="pn">${p.name}</div><div class="ps">DNI: ${p.dni||"—"} &nbsp;·&nbsp; ${preds} pronósticos</div></div></div>
@@ -873,7 +890,8 @@ function renderAdmin(){
 
 
 /* helpers reutilizables */
-function modePicker(){
+function modePicker(showKO=false){
+  if(!showKO) return ""; // jugadores solo ven grupos
   return`<div class="mp">
     <button class="mb${STATE.mode==="grupos"?" active":""}" onclick="window.setMode('grupos')">Fase de Grupos</button>
     <button class="mb${STATE.mode==="knockout"?" active":""}" onclick="window.setMode('knockout')">Eliminatorias</button>
