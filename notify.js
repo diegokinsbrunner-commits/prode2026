@@ -1,8 +1,8 @@
 // notify.js — Envía notificaciones push automáticas via OneSignal
 // Corre via GitHub Actions antes de cada partido del Mundial 2026
 
-const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
-const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
+const ONESIGNAL_APP_ID = (process.env.ONESIGNAL_APP_ID || "").trim();
+const ONESIGNAL_API_KEY = (process.env.ONESIGNAL_API_KEY || "").trim();
 const APP_URL = "https://diegokinsbrunner-commits.github.io/prode2026";
 
 // Partidos del Mundial 2026 con horarios en hora argentina (UTC-3)
@@ -89,6 +89,8 @@ function matchKickoff(m) {
 
 async function sendNotification(title, message) {
   console.log(`Enviando: "${title}" — "${message}"`);
+  console.log(`[debug] App ID length: ${ONESIGNAL_APP_ID.length}, starts with: ${ONESIGNAL_APP_ID.slice(0,4)}...`);
+  console.log(`[debug] API Key length: ${ONESIGNAL_API_KEY.length}, starts with: ${ONESIGNAL_API_KEY.slice(0,6)}...`);
   const resp = await fetch("https://api.onesignal.com/notifications", {
     method: "POST",
     headers: {
