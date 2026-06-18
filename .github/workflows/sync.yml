@@ -3,10 +3,10 @@ name: Prode Mundial 2026 — Sync + Notificaciones
 on:
   schedule:
     - cron: '*/10 * * * *'   # sync resultados cada 10 min
-    - cron: '0 12 * * *'     # notificación 9am Argentina (12 UTC)
-    - cron: '0 15 * * *'     # notificación 12pm Argentina (15 UTC)
-    - cron: '0 17 * * *'     # alerta 2hs antes turno tarde (14 UTC)
-    - cron: '0 19 * * *'     # alerta 2hs antes turno noche (16 UTC)
+    - cron: '0 12 * * *'     # 9am Argentina
+    - cron: '0 15 * * *'     # 12pm Argentina
+    - cron: '0 17 * * *'     # 2pm Argentina
+    - cron: '0 19 * * *'     # 4pm Argentina
   workflow_dispatch:
 
 jobs:
@@ -25,7 +25,6 @@ jobs:
   notificaciones:
     runs-on: ubuntu-latest
     needs: sync-resultados
-    if: ${{ secrets.ONESIGNAL_APP_ID != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
