@@ -1190,12 +1190,22 @@ window.dismissReminder = function(save) {
 
 /* ── NOTIFICACIONES DEL BROWSER ─────────────────────── */
 async function requestNotifPermission(player) {
+  // OneSignal (notificaciones reales en el celular)
+  if (window._oneSignalReady && window.OneSignal) {
+    try {
+      const perm = await window.OneSignal.Notifications.permissionNative;
+      if (perm === "default") {
+        await window.OneSignal.Slidedown.promptPush();
+        showToast("🔔 ¡Activá las notificaciones para no perderte ningún partido!");
+      }
+    } catch(e) {}
+    return;
+  }
+  // Fallback: notificación nativa del browser
   if (!("Notification" in window)) return;
   if (Notification.permission === "default") {
     const perm = await Notification.requestPermission();
-    if (perm === "granted") {
-      showToast("🔔 Notificaciones activadas");
-    }
+    if (perm === "granted") showToast("🔔 Notificaciones activadas");
   }
   tryBrowserNotif(player);
 }
