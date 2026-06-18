@@ -89,11 +89,11 @@ function matchKickoff(m) {
 
 async function sendNotification(title, message) {
   console.log(`Enviando: "${title}" — "${message}"`);
-  const resp = await fetch("https://onesignal.com/api/v1/notifications", {
+  const resp = await fetch("https://api.onesignal.com/notifications", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Basic ${ONESIGNAL_API_KEY}`
+      "Authorization": `Key ${ONESIGNAL_API_KEY}`
     },
     body: JSON.stringify({
       app_id: ONESIGNAL_APP_ID,
