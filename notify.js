@@ -115,8 +115,8 @@ async function sendNotification(title, message) {
 
 async function main() {
   if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
-    console.error("Faltan las variables ONESIGNAL_APP_ID y/o ONESIGNAL_API_KEY");
-    process.exit(1);
+    console.log("OneSignal no configurado todavía — saltando notificaciones");
+    process.exit(0); // salida limpia, sin error
   }
 
   const now   = Date.now();
