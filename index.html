@@ -7,21 +7,30 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
 
-<!-- OneSignal Push Notifications — reemplazá TU_ONESIGNAL_APP_ID -->
+<!-- OneSignal Push Notifications -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
+    window.OneSignal = OneSignal; // ← FIX: guardar referencia global
     await OneSignal.init({
       appId: "d6b6b483-e657-45dc-80e8-0deb011783ac",
+      allowLocalhostAsSecureOrigin: true,
       notifyButton: { enable: false },
       promptOptions: {
-        actionMessage: "Recibí recordatorios antes de cada partido ⚽",
-        acceptButtonText: "¡Activar!",
-        cancelButtonText: "Ahora no",
+        slidedown: {
+          enabled: true,
+          autoPrompt: true,
+          timeDelay: 3,
+          pageViews: 1,
+          actionMessage: "Recibí recordatorios antes de cada partido ⚽",
+          acceptButtonText: "¡Activar!",
+          cancelButtonText: "Ahora no",
+        }
       }
     });
     window._oneSignalReady = true;
+    console.log("✅ OneSignal listo");
   });
 </script>
 
