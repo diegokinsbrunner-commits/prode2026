@@ -20,6 +20,19 @@
       notifyButton: { enable: false },
       serviceWorkerPath: "prode2026/OneSignalSDKWorker.js",
       serviceWorkerParam: { scope: "/prode2026/" },
+      promptOptions: {
+        slidedown: {
+          prompts: [{
+            type: "push",
+            autoPrompt: true,
+            text: {
+              actionMessage: "Recibí recordatorios antes de cada partido del Mundial ⚽",
+              acceptButton: "Activar",
+              cancelButton: "Ahora no",
+            },
+          }],
+        },
+      },
     });
 
     window._oneSignalReady = true;
