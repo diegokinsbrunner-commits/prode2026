@@ -87,8 +87,9 @@ function matchKickoff(m) {
   return new Date(`2026-${month.padStart(2,"0")}-${day.padStart(2,"0")}T${time}:00-03:00`);
 }
 
-async function sendNotification(title, message) {
-  console.log(`Enviando: "${title}" — "${message}"`);
+async function sendNotification(title, message, matchId) {
+  const targetUrl = matchId ? `${APP_URL}/?match=${matchId}` : APP_URL;
+  console.log(`Enviando: "${title}" — "${message}" → ${targetUrl}`);
   console.log(`[debug] App ID length: ${ONESIGNAL_APP_ID.length}, starts with: ${ONESIGNAL_APP_ID.slice(0,4)}...`);
   console.log(`[debug] API Key length: ${ONESIGNAL_API_KEY.length}, starts with: ${ONESIGNAL_API_KEY.slice(0,6)}...`);
   const resp = await fetch("https://api.onesignal.com/notifications", {
@@ -102,7 +103,7 @@ async function sendNotification(title, message) {
       included_segments: ["All"],
       contents: { es: message, en: message },
       headings: { es: title,   en: title },
-      url: APP_URL,
+      url: targetUrl,
       chrome_web_icon: `${APP_URL}/icon-192.png`,
     })
   });
@@ -155,7 +156,8 @@ async function main() {
     const extra = tomorrowMatches.length > 2 ? ` y ${tomorrowMatches.length-2} más` : "";
     await sendNotification(
       "⚽ Mañana hay partidos — ¡cargá tus pronósticos!",
-      `${names}${extra}. Entrá antes de que empiecen.`
+      `${names}${extra}. Entrá antes de que empiecen.`,
+      tomorrowMatches[0].id
     );
     return;
   }
@@ -168,7 +170,8 @@ async function main() {
     const names = todayMatches.slice(0,2).map(m=>`${m.home} vs ${m.away}`).join(", ");
     await sendNotification(
       `⚽ Hoy juegan — ${todayMatches.length} partido${todayMatches.length>1?"s":""}!`,
-      `${names}. El primero arranca en ${horasHasta}h. ¡Cargá tu pronóstico ya!`
+      `${names}. El primero arranca en ${horasHasta}h. ¡Cargá tu pronóstico ya!`,
+      next.id
     );
     return;
   }
@@ -181,7 +184,8 @@ async function main() {
     if (minsHasta > 90 && minsHasta <= 150) { // ventana 90-150 min antes
       await sendNotification(
         `🚨 Faltan 2hs — ${next.home} vs ${next.away}`,
-        `¡Última chance para cargar tu pronóstico! El partido empieza en ${Math.round(minsHasta/60)}h.`
+        `¡Última chance para cargar tu pronóstico! El partido empieza en ${Math.round(minsHasta/60)}h.`,
+        next.id
       );
       return;
     }
