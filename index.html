@@ -252,7 +252,17 @@ let STATE = {
   corrP:"", corrM:"",
   participants:{}, predictions:{}, results:{},
   pendingDelete: null,  // id del jugador esperando confirmación de borrado
+  deepLinkMatch: null,  // id del partido al que apunta la notificación (deep link)
 };
+
+// Leer ?match=ID de la URL (viene de las notificaciones push)
+(function readDeepLink(){
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const mid = params.get("match");
+    if (mid) STATE.deepLinkMatch = parseInt(mid, 10);
+  } catch(e) {}
+})();
 
 /* estado admin (local, no compartido) */
 const AS = {
@@ -549,7 +559,7 @@ function matchCard(m,pid,isAdmin){
     :(res&&isAdmin)?`<div class="rl" style="color:#3b9eff">✅ ${res.h}–${res.a} guardado</div>`
     :(locked&&!res&&!isAdmin)?`<div class="rl" style="color:#3a5a9a">⏳ En curso — aguardando resultado</div>`:"";
 
-  return`<div class="mc" style="border-color:${bc}">
+  return`<div class="mc" id="match-${m.id}" style="border-color:${bc}">
     <div class="mm"><span>📅 ${m.date}${m.time?" · "+m.time+"hs":""} · ${m.venue} ${tags}</span>
       <div style="display:flex;gap:5px;align-items:center">${locked&&!isAdmin?`<span style="font-size:12px">🔒</span>`:""}${badge}</div></div>
     <div class="mr"><span class="tn">${m.home}</span>${scoreBlock}<span class="tn r">${m.away}</span></div>${sub}</div>`;
@@ -992,8 +1002,34 @@ window.enterPlayer = id => {
   const dni = prompt(`🔒 Hola ${p.name}!\nIngresá tu DNI para verificar tu identidad:`);
   if (dni === null) return; // canceló
   if (String(dni).trim() === String(p.dni)) {
-    STATE.player = id; STATE.screen = "player"; STATE.tab = "pronosticar"; render();
+    STATE.player = id; STATE.screen = "player"; STATE.tab = "pronosticar";
+
+    // Si la notificación apuntaba a un partido específico, navegamos directo ahí
+    if (STATE.deepLinkMatch) {
+      const m = MATCHES.find(x => x.id === STATE.deepLinkMatch);
+      if (m) {
+        if (m.id <= 72) { STATE.mode = "grupos"; STATE.filterG = m.g; }
+        else { STATE.mode = "knockout"; STATE.filterPh = m.ph; }
+      }
+    }
+
+    render();
     setTimeout(() => { showReminder(p); requestNotifPermission(p); showPointsPopup(p); }, 600);
+
+    // Scroll + resaltado de la tarjeta del partido apuntado por la notificación
+    if (STATE.deepLinkMatch) {
+      const targetId = STATE.deepLinkMatch;
+      STATE.deepLinkMatch = null; // se usa una sola vez
+      setTimeout(() => {
+        const el = document.getElementById(`match-${targetId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.style.transition = "box-shadow .3s";
+          el.style.boxShadow = "0 0 0 3px #f1c40f, 0 0 24px rgba(241,196,15,.5)";
+          setTimeout(() => { el.style.boxShadow = ""; }, 4000);
+        }
+      }, 1300);
+    }
   } else {
     alert("❌ DNI incorrecto. No podés acceder a este perfil.");
   }
