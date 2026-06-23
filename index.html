@@ -657,10 +657,12 @@ function renderPlayer(){
       ?`<div class="empty">${played.length===0?"Aún no hay partidos jugados.":"Cargá pronósticos antes de los partidos."}</div>`
       :(()=>{
         let lastDate="";
+        let running=0;
         return myPlayed.map(m=>{
           const pred=STATE.predictions[`${p.id}_${m.id}`];
           const res=STATE.results[m.id];
           const pts=calcPts(pred,res);
+          running += pts;
           const pc=pts===3?"#f1c40f":pts===1?"#3b9eff":"#e74c3c";
           const dateHeader = m.date!==lastDate ? `<div style="font-family:'Oswald',sans-serif;font-size:13px;color:#3a5a9a;letter-spacing:2px;margin:${lastDate?"16":"0"}px 0 6px 2px;text-transform:uppercase">📅 ${m.date}</div>` : "";
           lastDate = m.date;
@@ -673,7 +675,12 @@ function renderPlayer(){
                 <span style="color:#1e3a6e;font-size:15px">→</span>
                 <div style="text-align:center"><div style="font-family:'Oswald',sans-serif;font-size:20px;color:${pc}">${res.h}–${res.a}</div><div style="font-size:9px;color:#1e3a6e">REAL</div></div>
               </div>
-            <span class="tn r" style="font-size:13px">${m.away}</span></div></div>`;
+            <span class="tn r" style="font-size:13px">${m.away}</span></div>
+            <div style="margin-top:8px;padding-top:8px;border-top:1px solid #1a2a52;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:#3a5a9a">${pts>0?`+${pts} punto${pts>1?"s":""} en este partido`:"Sin puntos en este partido"}</span>
+              <span style="font-family:'Oswald',sans-serif;font-size:15px;color:#3b9eff">Acumulado: <strong style="color:#e8f0ff">${running}</strong></span>
+            </div>
+            </div>`;
         }).join("");
       })()}</div>`;
   }
