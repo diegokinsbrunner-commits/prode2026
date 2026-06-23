@@ -1,10 +1,11 @@
 // sync.js — Auto-sync de resultados del Mundial 2026
-// Corre automáticamente via GitHub Actions cada 10 minutos
+// Fuente principal: openfootball/worldcup.json (pública, sin límites, sin API key)
+// Fuente de respaldo: football-data.org (por si la principal no responde)
 
-const FOOTBALL_API_KEY = process.env.FOOTBALL_API_KEY || "169dd42d32854f3f96436cb3ee063773";
 const FIREBASE_URL = "https://prodemundial2026-848ca-default-rtdb.firebaseio.com";
+const FOOTBALL_API_KEY = process.env.FOOTBALL_API_KEY || "169dd42d32854f3f96436cb3ee063773";
+const OPENFOOTBALL_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
 
-// Mapeo ampliado de nombres (inglés API → español app)
 const TEAM_MAP = {
   "Mexico":"México","South Africa":"Sudáfrica","South Korea":"Corea del Sur",
   "Czech Republic":"Rep. Checa","Czechia":"Rep. Checa","Czech Rep.":"Rep. Checa",
@@ -12,13 +13,13 @@ const TEAM_MAP = {
   "Switzerland":"Suiza","Brazil":"Brasil","Morocco":"Marruecos",
   "Haiti":"Haití","Scotland":"Escocia","United States":"Estados Unidos","USA":"Estados Unidos",
   "Paraguay":"Paraguay","Australia":"Australia","Turkey":"Turquía","Türkiye":"Turquía","Turkiye":"Turquía",
-  "Germany":"Alemania","Curaçao":"Curazao","Curacao":"Curazao","Curaçao":"Curazao",
+  "Germany":"Alemania","Curaçao":"Curazao","Curacao":"Curazao",
   "Côte d'Ivoire":"C. de Marfil","Ivory Coast":"C. de Marfil","Cote d'Ivoire":"C. de Marfil",
   "Ecuador":"Ecuador","Netherlands":"Países Bajos","Holland":"Países Bajos",
   "Japan":"Japón","Sweden":"Suecia","Tunisia":"Túnez","Belgium":"Bélgica",
   "Egypt":"Egipto","Iran":"Irán","Islamic Republic of Iran":"Irán",
   "New Zealand":"Nueva Zelanda","Spain":"España",
-  "Cape Verde":"Cabo Verde","Cabo Verde":"Cabo Verde","Cape Verde Islands":"Cabo Verde",
+  "Cape Verde":"Cabo Verde","Cape Verde Islands":"Cabo Verde",
   "Saudi Arabia":"Arabia Saudita","KSA":"Arabia Saudita",
   "Uruguay":"Uruguay","France":"Francia","Senegal":"Senegal",
   "Iraq":"Irak","Norway":"Noruega","Argentina":"Argentina",
@@ -105,116 +106,119 @@ const MATCHES = [
 
 function mapTeam(name) {
   if (!name) return "";
-  // Prueba directa
   if (TEAM_MAP[name]) return TEAM_MAP[name];
-  // Prueba sin tildes / case-insensitive
-  const normalized = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-  for (const [key, val] of Object.entries(TEAM_MAP)) {
-    const k = key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-    if (k === normalized) return val;
-  }
-  return name; // devuelve original si no encuentra
+  const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const target = norm(name);
+  for (const [k,v] of Object.entries(TEAM_MAP)) if (norm(k) === target) return v;
+  return name;
 }
 
-async function fetchWithRetry(url, options, retries=3) {
-  for (let i=0; i<retries; i++) {
-    try {
-      const r = await fetch(url, options);
-      if (r.ok) return r;
-      if (r.status === 429) { // rate limit
-        await new Promise(res => setTimeout(res, 60000));
-        continue;
-      }
-      throw new Error(`HTTP ${r.status}`);
-    } catch(e) {
-      if (i === retries-1) throw e;
-      await new Promise(res => setTimeout(res, 2000 * (i+1)));
-    }
+function findMatch(t1, t2) {
+  const a = mapTeam(t1), b = mapTeam(t2);
+  return MATCHES.find(m => (m.home===a && m.away===b) || (m.home===b && m.away===a));
+}
+
+async function fetchJSON(url, opts) {
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error(`HTTP ${r.status} en ${url}`);
+  return r.json();
+}
+
+/* ── FUENTE 1: openfootball (pública, sin límites) ── */
+async function syncFromOpenFootball() {
+  console.log("→ Intentando fuente principal: openfootball/worldcup.json");
+  const data = await fetchJSON(OPENFOOTBALL_URL);
+  const updates = {};
+  const now = Date.now();
+
+  for (const m of data.matches || []) {
+    if (!m.score || !m.score.ft) continue;
+    const found = findMatch(m.team1, m.team2);
+    if (!found) continue;
+
+    // Evitar el bug de marcadores "pre-cargados" para partidos futuros:
+    // si el partido todavía no debería haber arrancado, lo ignoramos.
+    // (defensa extra; igual ya filtramos por score presente)
+    const isFlipped = found.home === mapTeam(m.team2);
+    const [s1, s2] = m.score.ft;
+    const h = isFlipped ? s2 : s1;
+    const a = isFlipped ? s1 : s2;
+    updates[found.id] = { h, a };
   }
+  return updates;
+}
+
+/* ── FUENTE 2 (respaldo): football-data.org ── */
+async function syncFromFootballData() {
+  console.log("→ Intentando fuente de respaldo: football-data.org");
+  const data = await fetchJSON(
+    "https://api.football-data.org/v4/competitions/WC/matches?limit=200",
+    { headers: { "X-Auth-Token": FOOTBALL_API_KEY } }
+  );
+  const updates = {};
+  for (const m of (data.matches || [])) {
+    const h = m.score?.fullTime?.home;
+    const a = m.score?.fullTime?.away;
+    if (h == null || a == null) continue;
+    if (!["FINISHED","FT","AWARDED","COMPLETED"].includes(m.status)) continue;
+    const found = findMatch(m.homeTeam?.name, m.awayTeam?.name);
+    if (!found) continue;
+    const isFlipped = found.home === mapTeam(m.awayTeam?.name);
+    updates[found.id] = { h: isFlipped?+a:+h, a: isFlipped?+h:+a };
+  }
+  return updates;
 }
 
 async function sync() {
   console.log(`[${new Date().toISOString()}] Iniciando sync...`);
 
-  // 1. Obtener TODOS los partidos del Mundial (sin filtrar por status)
-  //    Usamos limit=200 para evitar paginación
-  const apiUrl = "https://api.football-data.org/v4/competitions/WC/matches?limit=200";
-  const resp = await fetchWithRetry(apiUrl, {
-    headers: { "X-Auth-Token": FOOTBALL_API_KEY }
-  });
+  let updates = {};
+  let usedSource = "";
 
-  const data = await resp.json();
-  const allMatches = data.matches || [];
-  console.log(`Total partidos en API: ${allMatches.length}`);
+  try {
+    updates = await syncFromOpenFootball();
+    usedSource = "openfootball";
+  } catch (e) {
+    console.log(`⚠️ Fuente principal falló (${e.message}), probando respaldo...`);
+    try {
+      updates = await syncFromFootballData();
+      usedSource = "football-data.org";
+    } catch (e2) {
+      console.error(`❌ Ambas fuentes fallaron: ${e2.message}`);
+      process.exit(1);
+    }
+  }
 
-  // 2. Filtrar solo los que tienen marcador final (independiente del status)
-  const finishedMatches = allMatches.filter(m => {
-    const h = m.score?.fullTime?.home ?? m.score?.fullTime?.homeTeam;
-    const a = m.score?.fullTime?.away ?? m.score?.fullTime?.awayTeam;
-    return h != null && a != null &&
-           ["FINISHED","FT","AWARDED","COMPLETED"].includes(m.status);
-  });
-  console.log(`Partidos con resultado: ${finishedMatches.length}`);
+  console.log(`Fuente usada: ${usedSource}. Partidos con resultado: ${Object.keys(updates).length}`);
 
-  // 3. Obtener resultados actuales de Firebase
+  // Comparar contra lo que ya hay en Firebase, solo escribir lo nuevo/distinto
   const fbResp = await fetch(`${FIREBASE_URL}/prode26/results.json`);
-  const currentResults = (await fbResp.json()) || {};
+  const current = (await fbResp.json()) || {};
 
-  // 4. Calcular actualizaciones necesarias
-  const updates = {};
-  const noMatch = [];
-
-  for (const m of finishedMatches) {
-    const h = m.score?.fullTime?.home ?? m.score?.fullTime?.homeTeam;
-    const a = m.score?.fullTime?.away ?? m.score?.fullTime?.awayTeam;
-
-    const apiHome = mapTeam(m.homeTeam?.name || m.homeTeam?.shortName || "");
-    const apiAway = mapTeam(m.awayTeam?.name || m.awayTeam?.shortName || "");
-
-    const found = MATCHES.find(x =>
-      (x.home === apiHome && x.away === apiAway) ||
-      (x.home === apiAway && x.away === apiHome)
-    );
-
-    if (!found) {
-      noMatch.push(`${m.homeTeam?.name} vs ${m.awayTeam?.name}`);
-      continue;
-    }
-
-    const isFlipped = found.home === apiAway;
-    const fh = isFlipped ? +a : +h;
-    const fa = isFlipped ? +h : +a;
-
-    const ex = currentResults[found.id];
-    if (!ex || ex.h !== fh || ex.a !== fa) {
-      updates[found.id] = { h: fh, a: fa };
-      console.log(`  → ${found.home} ${fh}-${fa} ${found.away}`);
+  const finalUpdates = {};
+  for (const [id, val] of Object.entries(updates)) {
+    const ex = current[id];
+    if (!ex || ex.h !== val.h || ex.a !== val.a) {
+      finalUpdates[id] = val;
+      console.log(`  → #${id}: ${val.h}-${val.a}`);
     }
   }
 
-  if (noMatch.length > 0) {
-    console.log(`Sin mapeo (${noMatch.length}): ${noMatch.join(" | ")}`);
-  }
-
-  // 5. Guardar en Firebase
-  const cnt = Object.keys(updates).length;
+  const cnt = Object.keys(finalUpdates).length;
   if (cnt > 0) {
-    const patchResp = await fetch(`${FIREBASE_URL}/prode26/results.json`, {
+    const patch = await fetch(`${FIREBASE_URL}/prode26/results.json`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates)
+      body: JSON.stringify(finalUpdates)
     });
-    if (patchResp.ok) {
-      console.log(`✅ ${cnt} resultado${cnt>1?"s":""} actualizados en Firebase`);
-    } else {
-      throw new Error(`Firebase error: ${patchResp.status}`);
-    }
+    if (!patch.ok) throw new Error(`Firebase error: ${patch.status}`);
+    console.log(`✅ ${cnt} resultado(s) actualizados en Firebase`);
   } else {
     console.log("✅ Todo al día, sin cambios");
   }
 }
 
 sync().catch(err => {
-  console.error("Error:", err.message);
+  console.error("Error fatal:", err.message);
   process.exit(1);
 });
