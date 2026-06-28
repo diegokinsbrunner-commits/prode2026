@@ -163,21 +163,21 @@ const MATCHES = [
   {id:70, date:"23/06",time:"20:00",home:"Panamá",          away:"Croacia",        g:"L",venue:"Toronto"},
   {id:71, date:"27/06",time:"18:00",home:"Croacia",         away:"Ghana",          g:"L",venue:"Philadelphia"},
   {id:72, date:"27/06",time:"18:00",home:"Panamá",          away:"Inglaterra",     g:"L",venue:"Nueva Jersey"},
-  {id:73,  date:"28/06",time:"16:00",home:"2º Grupo A",   away:"2º Grupo B",   ph:"16avos",    venue:"Los Ángeles"},
+  {id:73,  date:"28/06",time:"16:00",home:"Sudáfrica",   away:"Canadá",   ph:"16avos",    venue:"Los Ángeles"},
   {id:74,  date:"29/06",time:"16:00",home:"1º Grupo E",   away:"Mejor 3ro",    ph:"16avos",    venue:"Boston"},
-  {id:75,  date:"29/06",time:"20:00",home:"1º Grupo F",   away:"2º Grupo C",   ph:"16avos",    venue:"Monterrey"},
-  {id:76,  date:"29/06",time:"23:00",home:"2º Grupo E",   away:"2º Grupo F",   ph:"16avos",    venue:"Houston"},
+  {id:75,  date:"29/06",time:"20:00",home:"Países Bajos",   away:"Marruecos",   ph:"16avos",    venue:"Monterrey"},
+  {id:76,  date:"29/06",time:"23:00",home:"Brasil",   away:"Japón",   ph:"16avos",    venue:"Houston"},
   {id:77,  date:"30/06",time:"16:00",home:"1º Grupo I",   away:"Mejor 3ro",    ph:"16avos",    venue:"Nueva Jersey"},
   {id:78,  date:"30/06",time:"20:00",home:"2º Grupo E",   away:"2º Grupo I",   ph:"16avos",    venue:"Dallas"},
-  {id:79,  date:"30/06",time:"23:00",home:"1º Grupo A",   away:"Mejor 3ro",    ph:"16avos",    venue:"Cd. de México"},
+  {id:79,  date:"30/06",time:"23:00",home:"México",   away:"Mejor 3ro",    ph:"16avos",    venue:"Cd. de México"},
   {id:80,  date:"01/07",time:"16:00",home:"1º Grupo L",   away:"Mejor 3ro",    ph:"16avos",    venue:"Atlanta"},
-  {id:81,  date:"01/07",time:"20:00",home:"1º Grupo D",   away:"Mejor 3ro",    ph:"16avos",    venue:"San Francisco"},
+  {id:81,  date:"01/07",time:"20:00",home:"Estados Unidos",   away:"Bosnia y Herz.",    ph:"16avos",    venue:"San Francisco"},
   {id:82,  date:"01/07",time:"23:00",home:"1º Grupo G",   away:"Mejor 3ro",    ph:"16avos",    venue:"Seattle"},
   {id:83,  date:"02/07",time:"16:00",home:"2º Grupo K",   away:"2º Grupo L",   ph:"16avos",    venue:"Toronto"},
   {id:84,  date:"02/07",time:"20:00",home:"1º Grupo H",   away:"2º Grupo J",   ph:"16avos",    venue:"Los Ángeles"},
-  {id:85,  date:"02/07",time:"23:00",home:"1º Grupo B",   away:"Mejor 3ro",    ph:"16avos",    venue:"Vancouver"},
-  {id:86,  date:"03/07",time:"16:00",home:"1º Grupo J",   away:"2º Grupo H",   ph:"16avos",    venue:"Miami"},
-  {id:87,  date:"03/07",time:"20:00",home:"1º Grupo K",   away:"Mejor 3ro",    ph:"16avos",    venue:"Kansas City"},
+  {id:85,  date:"02/07",time:"23:00",home:"Suiza",   away:"Mejor 3ro",    ph:"16avos",    venue:"Vancouver"},
+  {id:86,  date:"03/07",time:"16:00",home:"Argentina",   away:"2º Grupo H",   ph:"16avos",    venue:"Miami"},
+  {id:87,  date:"03/07",time:"20:00",home:"Colombia",   away:"Mejor 3ro",    ph:"16avos",    venue:"Kansas City"},
   {id:88,  date:"03/07",time:"23:00",home:"2º Grupo D",   away:"2º Grupo G",   ph:"16avos",    venue:"Dallas"},
   {id:89,  date:"04/07",time:"16:00",home:"Gan. P74",     away:"Gan. P77",     ph:"Octavos",   venue:"Philadelphia"},
   {id:90,  date:"04/07",time:"23:00",home:"Gan. P73",     away:"Gan. P75",     ph:"Octavos",   venue:"Houston"},
@@ -1039,18 +1039,16 @@ function chatHTML(player){
         <button class="ba" onclick="window.sendChat()" style="padding:10px 16px">➤</button>
       </div>
     </div>
-    <script>
-      setTimeout(()=>{
-        const sc=document.getElementById('chat-scroll');
-        if(sc) sc.scrollTop = sc.scrollHeight;
-      }, 50);
-    </script>
   `;
+}
+function scrollChatToBottom(){
+  const sc = document.getElementById('chat-scroll');
+  if (sc) sc.scrollTop = sc.scrollHeight;
 }
 function render(){
   const el=document.getElementById("app"); if(!el)return;
   if(STATE.screen==="welcome") el.innerHTML=renderWelcome();
-  else if(STATE.screen==="player") { el.innerHTML=renderPlayer(); runCounters(); }
+  else if(STATE.screen==="player") { el.innerHTML=renderPlayer(); runCounters(); if(STATE.tab==="chat") setTimeout(scrollChatToBottom,50); }
   else if(STATE.screen==="admin")  el.innerHTML=renderAdmin();
 }
 
@@ -1692,4 +1690,3 @@ input[type=number]{-moz-appearance:textfield}
 🔐 PIN ADMIN: Agus2026
 📊 API SYNC:  football-data.org — 169dd42d32854f3f96436cb3ee063773
 -->
-
